@@ -1,0 +1,24 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "cmd",
+    srcs = [
+        "gitDeps.go",
+        "root.go",
+        "xml.go",
+    ],
+    importpath = "kreempuff.dev/rules-unreal-engine/cmd",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_sirupsen_logrus//:logrus",
+        "@com_github_spf13_cobra//:cobra",
+    ],
+)
+
+go_test(
+    name = "cmd_test",
+    srcs = ["xml_test.go"],
+    embed = [":cmd"],
+    embedsrcs = ["test.xml"],
+    deps = ["@com_github_stretchr_testify//assert"],
+)
