@@ -1,0 +1,14 @@
+name: Build and Test
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+jobs:
+  BuildAndTest:
+    runs-on: ubuntu-22.04
+    steps:
+      - run: bazel test //cmd:cmd_test
+
