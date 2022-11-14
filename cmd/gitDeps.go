@@ -6,7 +6,6 @@ package cmd
 import (
 	"encoding/xml"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -18,7 +17,7 @@ import (
 var gitDepsCmd = &cobra.Command{
 	Use:   "gitDeps",
 	Short: "Parses Unreal dependencies and performs actions on them",
-	Long: `Parses Unreal dependencies and performs actions on them.`,
+	Long:  `Parses Unreal dependencies and performs actions on them.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logrus.SetLevel(logrus.DebugLevel)
 
@@ -49,7 +48,7 @@ var gitDepsCmd = &cobra.Command{
 		// Find dependency file
 		depFile := filepath.Join(abs, ".ue4dependencies")
 		_, err = os.Stat(depFile)
-		
+
 		if os.IsNotExist(err) {
 			logrus.Errorf("dependency file does not exist: %s", err)
 			return
@@ -58,7 +57,7 @@ var gitDepsCmd = &cobra.Command{
 		// TODO 
 		// check if file is a file
 
-		f, err := ioutil.ReadFile(depFile)
+		f, err := os.ReadFile(depFile)
 
 		if err != nil {
 			logrus.Errorf("error opening dependency file: %s", err)
