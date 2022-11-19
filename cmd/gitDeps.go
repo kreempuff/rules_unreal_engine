@@ -4,8 +4,9 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"encoding/xml"
+	"bytes"
 	"fmt"
+	"kreempuff.dev/rules-unreal-engine/pkg/gitDeps"
 	"os"
 	"path/filepath"
 
@@ -54,7 +55,7 @@ var gitDepsCmd = &cobra.Command{
 			return
 		}
 
-		// TODO 
+		// TODO
 		// check if file is a file
 
 		f, err := os.ReadFile(depFile)
@@ -63,16 +64,15 @@ var gitDepsCmd = &cobra.Command{
 			logrus.Errorf("error opening dependency file: %s", err)
 			return
 		}
+		buf := bytes.NewBuffer(f)
 
-		manifest := GitDependenciesFile{}
-		err = xml.Unmarshal(f, &manifest)
-
+		manifest, err := gitDeps.ParseFile(buf)
 		if err != nil {
 			logrus.Errorf("error decoding dependency file: %s", err)
 			return
 		}
 
-		logrus.Infof("manifest file count: %v", manifest)
+		logrus.Infof("manifest file count: %d", len(manifest.Files))
 	},
 }
 
