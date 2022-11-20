@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<WorkingManifest>
+<WorkingManifest BaseUrl="http://cdn.unrealengine.com/dependencies">
     <Files>
         <File Name="some-file" Hash="d3d7bbcf9b2fc8b6e4f2965354a5633c4f175589" ExpectedHash="d3d7bbcf9b2fc8b6e4f2965354a5633c4f175589" Timestamp="637988041677261645"/>
     </Files>
