@@ -7,14 +7,15 @@ import (
 	"testing"
 )
 
-//go:embed test.xml
-var testXml []byte
+//go:embed working-manifest-test.xml
+var workingManifestTestXml []byte
 
 func TestBasic(t *testing.T) {
 	t.Run("xml unmarshal basic", func(t *testing.T) {
 		w := WorkingManifest{}
-		err := xml.Unmarshal(testXml, &w)
+		err := xml.Unmarshal(workingManifestTestXml, &w)
 		assert.Nil(t, err)
+		assert.Equal(t, "http://cdn.unrealengine.com/dependencies", w.BaseUrl)
 		assert.Len(t, w.Files, 1)
 		assert.Len(t, w.Packs, 1)
 		assert.Len(t, w.Blobs, 1)

@@ -9,6 +9,7 @@ type GitDependenciesFile struct {
 
 type WorkingManifest struct {
 	XMLName xml.Name
+	BaseUrl string `xml:"BaseUrl,attr"`
 	Files   []File `xml:"Files>File"`
 	Packs   []Pack `xml:"Packs>Pack"`
 	Blobs   []Blob `xml:"Blobs>Blob"`

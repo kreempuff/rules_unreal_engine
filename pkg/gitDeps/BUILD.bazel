@@ -14,6 +14,6 @@ go_test(
     name = "gitDeps_test",
     srcs = ["xml_test.go"],
     embed = [":gitDeps"],
-    embedsrcs = ["test.xml"],
+    embedsrcs = ["working-manifest-test.xml"],
     deps = ["@com_github_stretchr_testify//assert"],
 )
