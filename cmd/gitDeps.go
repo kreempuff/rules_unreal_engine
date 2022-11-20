@@ -5,7 +5,6 @@ package cmd
 
 import (
 	"bytes"
-	"fmt"
 	"kreempuff.dev/rules-unreal-engine/pkg/gitDeps"
 	"os"
 	"path/filepath"
@@ -14,7 +13,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// gitDepsCmd represents the gitDeps command
 var gitDepsCmd = &cobra.Command{
 	Use:   "gitDeps",
 	Short: "Parses Unreal dependencies and performs actions on them",
@@ -22,37 +20,42 @@ var gitDepsCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		logrus.SetLevel(logrus.DebugLevel)
 
-		dir, err := cmd.Flags().GetString("input")
+		input, err := cmd.Flags().GetString("input")
 
 		if err != nil {
-			fmt.Println(err)
+			logrus.Error(err)
+			logrus.Exit(UnknownExitCode)
 		}
 
 		// Expand full path from relative path
-		abs, err := filepath.Abs(dir)
+		abs, err := filepath.Abs(input)
 
 		if err != nil {
-			fmt.Println(err)
+			logrus.Error(err)
+			logrus.Exit(UnknownExitCode)
 		}
 
 		// Check if directory exists
 		stat, err := os.Stat(abs)
 
 		if err != nil && os.IsNotExist(err) {
-			fmt.Println("Directory does not exist")
-		}
-
-		if !stat.IsDir() {
-			fmt.Println("Path is not a directory")
+			logrus.Error("Directory does not exist")
+			logrus.Exit(UnknownExitCode)
 		}
 
 		// Find dependency file
-		depFile := filepath.Join(abs, ".ue4dependencies")
+		var depFile string
+
+		if stat.IsDir() {
+			depFile = filepath.Join(abs, ".ue4dependencies")
+		} else {
+			depFile = input
+		}
 		_, err = os.Stat(depFile)
 
 		if os.IsNotExist(err) {
 			logrus.Errorf("dependency file does not exist: %s", err)
-			return
+			logrus.Exit(UnknownExitCode)
 		}
 
 		// TODO
@@ -62,17 +65,17 @@ var gitDepsCmd = &cobra.Command{
 
 		if err != nil {
 			logrus.Errorf("error opening dependency file: %s", err)
-			return
+			logrus.Exit(UnknownExitCode)
 		}
 		buf := bytes.NewBuffer(f)
 
 		manifest, err := gitDeps.ParseFile(buf)
 		if err != nil {
 			logrus.Errorf("error decoding dependency file: %s", err)
-			return
+			logrus.Exit(UnknownExitCode)
 		}
 
-		logrus.Infof("manifest file count: %d", len(manifest.Files))
+		logrus.Infof("url: %s/%s/%s, compressed size: %d", manifest.BaseUrl, manifest.Packs[0].RemotePath, manifest.Packs[0].Hash, manifest.Packs[0].CompressedSize)
 	},
 }
 
