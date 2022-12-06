@@ -76,6 +76,20 @@ var gitDepsCmd = &cobra.Command{
 		}
 
 		logrus.Infof("url: %s/%s/%s, compressed size: %d", manifest.BaseUrl, manifest.Packs[0].RemotePath, manifest.Packs[0].Hash, manifest.Packs[0].CompressedSize)
+
+		filename := ".tgitconfig"
+		p := gitDeps.GetPackfromFileName(filename, *manifest)
+		if p == nil {
+			logrus.Errorf("pack not found for %s", filename)
+		} else {
+			logrus.Infof("pack for %s is %s", filename, p.RemotePath)
+		}
+
+		err = gitDeps.DownloadPack(os.Stdout, p, *manifest)
+		if err != nil {
+			logrus.Error("failed to download pack", err)
+			logrus.Debugf("pack: %s failed to download", p.Hash)
+		}
 	},
 }
 
