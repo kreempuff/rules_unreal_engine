@@ -1,5 +1,6 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 load("@bazel_gazelle//:def.bzl", "gazelle")
+load(":rules_test.bzl", "unreal_target_test_suite")
 
 # gazelle:prefix kreempuff.dev/rules-unreal-engine
 gazelle(name = "gazelle")
@@ -26,4 +27,8 @@ go_binary(
     name = "rules-unreal-engine",
     embed = [":rules-unreal-engine_lib"],
     visibility = ["//visibility:public"],
+)
+
+unreal_target_test_suite(
+    name = "unreal_target_test",
 )
