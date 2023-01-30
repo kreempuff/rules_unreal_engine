@@ -83,3 +83,36 @@ List of additional modules to be compiled into the target.
         ),
     },
 )
+
+def _unreal_module_impl(ctx):
+    pass
+
+unreal_module = rule(
+    implementation = _unreal_module_impl,
+    attrs = {
+        "type": attr.string(
+            default = "cpp",
+            values = ["cpp", "external"],
+            doc = """
+Default value:
+https://github.com/kreempuff/UnrealEngine/blob/cdaec5b33ea5d332e51eee4e4866495c90442122/Engine/Source/Programs/UnrealBuildTool/Configuration/ModuleRules.cs#L596
+Possible Values:
+https://github.com/kreempuff/UnrealEngine/blob/cdaec5b33ea5d332e51eee4e4866495c90442122/Engine/Source/Programs/UnrealBuildTool/Configuration/ModuleRules.cs#L70
+""",
+        ),
+        "pch_usage": attr.string(
+            values = ["default", "none", "noshared", "shared", "explicit_or_shared"],
+            doc = """
+Usage of Precompiled Headers
+
+Possible Values:
+https://github.com/kreempuff/UnrealEngine/blob/cdaec5b33ea5d332e51eee4e4866495c90442122/Engine/Source/Programs/UnrealBuildTool/Configuration/ModuleRules.cs#L155
+""",
+        ),
+        #        TODO(add providers)
+        "public_include_path_modules": attr.label_list(),
+        "public_dependency_modules": attr.label_list(),
+        "private_include_path_modules": attr.label_list(),
+        "private_dependency_modules": attr.label_list(),
+    },
+)
