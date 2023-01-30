@@ -8,12 +8,20 @@ go_library(
     ],
     importpath = "kreempuff.dev/rules-unreal-engine/pkg/gitDeps",
     visibility = ["//visibility:public"],
+    deps = ["@com_github_sirupsen_logrus//:logrus"],
 )
 
 go_test(
     name = "gitDeps_test",
-    srcs = ["xml_test.go"],
+    srcs = [
+        "gitDeps_test.go",
+        "xml_test.go",
+    ],
     embed = [":gitDeps"],
     embedsrcs = ["working-manifest-test.xml"],
-    deps = ["@com_github_stretchr_testify//assert"],
+    deps = [
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//http",
+        "@com_github_stretchr_testify//mock",
+    ],
 )
