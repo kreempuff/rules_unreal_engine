@@ -1,6 +1,8 @@
 load("@bazel_gazelle//:deps.bzl", "go_repository")
 
 def go_dependencies():
+    """
+    """
     go_repository(
         name = "com_github_cpuguy83_go_md2man_v2",
         importpath = "github.com/cpuguy83/go-md2man/v2",
