@@ -63,3 +63,37 @@ func TestDownloadPack(t *testing.T) {
 		})
 	}
 }
+
+func TestGetPackUrls(t *testing.T) {
+	type args struct {
+		w WorkingManifest
+	}
+	tests := []struct {
+		name string
+		args args
+		want []string
+	}{
+		{
+			name: "happy path",
+			args: args{
+				w: WorkingManifest{
+					BaseUrl: "https://some-base-url",
+					Packs: []Pack{
+						{
+							Hash:           "some-hash",
+							Size:           0,
+							CompressedSize: 0,
+							RemotePath:     "some-remote-path",
+						},
+					},
+				},
+			},
+			want: []string{"https://some-base-url/some-remote-path/some-hash"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, GetPackUrls(tt.args.w), "GetPackUrls(%v)", tt.args.w)
+		})
+	}
+}

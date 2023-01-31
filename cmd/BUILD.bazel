@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "exit.go",
         "gitDeps.go",
+        "printUrls.go",
         "root.go",
     ],
     importpath = "kreempuff.dev/rules-unreal-engine/cmd",
