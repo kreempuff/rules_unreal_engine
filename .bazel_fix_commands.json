@@ -1,0 +1,7 @@
+[
+  {
+    "regex": "^.*\\.go.*undefined:.*$",
+    "command": "bazel",
+    "args": [ "run", "//:gazelle" ]
+  }
+]

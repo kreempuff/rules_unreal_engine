@@ -1,6 +1,7 @@
 package gitDeps
 
 import (
+	"bytes"
 	"encoding/xml"
 	"errors"
 	"fmt"
@@ -8,6 +9,8 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
+	"os"
+	"path/filepath"
 )
 
 func ParseDir(dir fs.FS) []WorkingManifest {
@@ -101,4 +104,56 @@ func GetPackfromFileName(filename string, w WorkingManifest) *Pack {
 	}
 
 	return pack
+}
+
+// GetPackUrls returns a list of urls for all the packs in a manifest file
+func GetPackUrls(w WorkingManifest) []string {
+	var urls []string
+	for _, p := range w.Packs {
+		urls = append(urls, fmt.Sprintf("%s/%s/%s", w.BaseUrl, p.RemotePath, p.Hash))
+	}
+	return urls
+}
+
+// GetManifestFromInput takes a string that represents a path or directory to a manifest file and returns
+// a data structure representing the file for further processing
+func GetManifestFromInput(input string) (*WorkingManifest, error) {
+	// Expand full path from relative path
+	abs, err := filepath.Abs(input)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if directory exists
+	stat, err := os.Stat(abs)
+
+	if err != nil && os.IsNotExist(err) {
+		return nil, fmt.Errorf("file does not exist: %w", err)
+	}
+
+	// Find dependency file
+	var depFile string
+
+	if stat.IsDir() {
+		depFile = filepath.Join(abs, ".ue4dependencies")
+	} else {
+		depFile = input
+	}
+	_, err = os.Stat(depFile)
+
+	if os.IsNotExist(err) {
+		return nil, fmt.Errorf("file does not exist: %w", err)
+	}
+
+	// TODO
+	// check if file is a file
+
+	f, err := os.ReadFile(depFile)
+
+	if err != nil {
+		return nil, err
+	}
+	buf := bytes.NewBuffer(f)
+	return ParseFile(buf)
 }

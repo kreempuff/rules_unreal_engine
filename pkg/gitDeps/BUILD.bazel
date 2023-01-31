@@ -3,6 +3,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "gitDeps",
     srcs = [
+        "constants.go",
         "gitDeps.go",
         "xml.go",
     ],
@@ -19,9 +20,5 @@ go_test(
     ],
     embed = [":gitDeps"],
     embedsrcs = ["working-manifest-test.xml"],
-    deps = [
-        "@com_github_stretchr_testify//assert",
-        "@com_github_stretchr_testify//http",
-        "@com_github_stretchr_testify//mock",
-    ],
+    deps = ["@com_github_stretchr_testify//assert"],
 )
