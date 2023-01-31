@@ -50,7 +50,7 @@ git_repository(
     name = "io_bazel_rules_dotnet",
     commit = "0b7ae93fa81b7327a655118da0581db5ebbe0b8d",
     remote = "https://github.com/bazelbuild/rules_dotnet",
-    shallow_since = "1653416975 +0000"
+    shallow_since = "1653416975 +0000",
 )
 
 load("@io_bazel_rules_dotnet//dotnet:deps.bzl", "dotnet_repositories")
@@ -66,3 +66,11 @@ load(
 dotnet_register_toolchains()
 
 dotnet_repositories_nugets()
+
+load("@//internal/repo:rule.bzl", "unreal_engine")
+
+unreal_engine(
+    name = "unreal_engine",
+    commit = "kreempuff-release",
+    git_repository = "https://github.com/kreempuff/UnrealEngine.git",
+)
