@@ -1,0 +1,5 @@
+# build --host_platform=@io_bazel_rules_dotnet//dotnet/toolchain:darwin_amd64_6.0.101 --platforms=@io_bazel_rules_dotnet//dotnet/toolchain:darwin_amd64_6.0.101
+
+# all --experimental_ui_max_stdouterr_bytes=1048576 5000000
+common --experimental_ui_max_stdouterr_bytes=50000000
+common:ci --disk_cache=./.cache/bazel --experimental_ui_max_stdouterr_bytes=50000000
