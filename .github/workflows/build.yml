@@ -8,9 +8,20 @@ on:
       - main
 jobs:
   BuildAndTest:
-    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        os: [ ubuntu-22.04, macos-12 ]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
-      - run: bazel test //:unreal_target_test
-      - run: bazel build //:rules-unreal-engine
+      - run: |
+          mkdir -p ~/.cache/bazel
+      - uses: actions/cache@v3
+        with:
+          path: ~/.cache/bazel
+          key: ${{ runner.os }}-bazel-${{ hashFiles('**/WORKSPACE') }}
+          restore-keys: |
+            ${{ runner.os }}-bazel-
+      - run: bazel test --config ci //:unreal_target_test
+      - run: bazel build --config ci //:rules-unreal-engine
 

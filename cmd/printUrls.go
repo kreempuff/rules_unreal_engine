@@ -32,9 +32,6 @@ var printUrlsCmd = &cobra.Command{
 			logrus.Exit(UnknownExitCode)
 		}
 
-		fmt.Println(len(manifest.Files))
-		fmt.Println(len(manifest.Packs))
-		fmt.Println(len(manifest.Blobs))
 		urls := gitDeps.GetPackUrls(*manifest)
 
 		out := ""
