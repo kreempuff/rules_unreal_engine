@@ -13,7 +13,7 @@ def _unreal_engine_impl(repo_ctx):
     if repo_ctx.os.name == "mac os x" and repo_ctx.os.arch == "aarch64":
         os = "apple-darwin"
         arch = "aarch64"
-    elif repo_ctx.os.name == "mac os x" and repo_ctx.os.arch == "aarch64":
+    elif repo_ctx.os.name == "mac os x" and repo_ctx.os.arch == "x86_64":
         os = "apple-darwin"
         arch = "x86_64"
     elif repo_ctx.os.name == "linux" and repo_ctx.os.arch == "x86_64":
