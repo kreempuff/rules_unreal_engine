@@ -19,7 +19,7 @@ jobs:
       - uses: actions/cache@v3
         with:
           path: ~/.cache/bazel
-          key: ${{ runner.os }}-bazel-${{ hashFiles('./WORKSPACE', '**/BUILD', '**/BUILD.bzl', '**/*.bzl') }}
+          key: ${{ runner.os }}-bazel-${{ hashFiles('./WORKSPACE', '**/BUILD', '**/BUILD.bzl', '**/*.bzl', '.bazelrc') }}
           restore-keys: |
             ${{ runner.os }}-bazel-
       - run: bazel test --config ci //:unreal_target_test
