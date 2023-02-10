@@ -27,9 +27,17 @@ def _unreal_engine_impl(repo_ctx):
         output = "tools/deno",
     )
     repo_ctx.execute(["chmod", "+x", "tools/deno/deno"])
-    repo_ctx.execute(["tools/deno/deno", "run", "--allow-read", "--allow-write", repo_ctx.path(repo_ctx.attr._parse_xml_script), "UnrealEngine/Engine/Build/Commit.gitdeps.xml", "Commit.gitdeps.json"])
 
-#    repo_ctx.execute(["tools/deno/deno", "run", "--allow-read", "--allow-write", "--allow-run", repo_ctx.attr._parse_xml_script.path, "UnrealEngine/Engine/Build/Commit.gitdeps.xml", "Commit.gitdeps.json"])
+    #   Result is a comma separated list of urls to download
+    result = repo_ctx.execute(["tools/deno/deno", "run", "--allow-read", "--allow-write", repo_ctx.path(repo_ctx.attr._parse_xml_script), "UnrealEngine/Engine/Build/Commit.gitdeps.xml", "Commit.gitdeps.json"])
+    if result.return_code != 0:
+        fail("Failed to parse gitdeps file" + "\n" + result.stderr)
+    urls = result.stdout.split(",")
+    for url in urls:
+        repo_ctx.download(
+            url = url,
+            output = "packs",
+        )
 
 unreal_engine = repository_rule(
     implementation = _unreal_engine_impl,
@@ -45,7 +53,7 @@ configured to clone Unreal Engine from the given repository""",
             mandatory = True,
         ),
         "_parse_xml_script": attr.label(
-            default = "@//:parse-xml-cli.ts",
+            default = "@//parse-xml:index.ts",
             allow_single_file = True,
         ),
     },
