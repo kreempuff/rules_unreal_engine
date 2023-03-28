@@ -115,11 +115,24 @@ func GetPackUrls(w WorkingManifest) []string {
 	return urls
 }
 
-// GetManifestFromInput takes a string that represents a path or directory to a manifest file and returns
+// GetSmallestPack returns the smallest pack in a manifest file
+func GetSmallestPack(w WorkingManifest) *Pack {
+	var smallestPack *Pack
+	for _, p := range w.Packs {
+		if smallestPack == nil {
+			smallestPack = &p
+		} else if p.Size < smallestPack.Size {
+			smallestPack = &p
+		}
+	}
+	return smallestPack
+}
+
+// GetManifestFromPath takes a string that represents a path or directory to a manifest file and returns
 // a data structure representing the file for further processing
-func GetManifestFromInput(input string) (*WorkingManifest, error) {
+func GetManifestFromPath(path string) (*WorkingManifest, error) {
 	// Expand full path from relative path
-	abs, err := filepath.Abs(input)
+	abs, err := filepath.Abs(path)
 
 	if err != nil {
 		return nil, err
@@ -138,7 +151,7 @@ func GetManifestFromInput(input string) (*WorkingManifest, error) {
 	if stat.IsDir() {
 		depFile = filepath.Join(abs, ".ue4dependencies")
 	} else {
-		depFile = input
+		depFile = path
 	}
 	_, err = os.Stat(depFile)
 

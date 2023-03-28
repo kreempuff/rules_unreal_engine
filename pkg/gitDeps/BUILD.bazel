@@ -5,17 +5,22 @@ go_library(
     srcs = [
         "constants.go",
         "gitDeps.go",
+        "sql.go",
         "xml.go",
     ],
     importpath = "kreempuff.dev/rules-unreal-engine/pkg/gitDeps",
     visibility = ["//visibility:public"],
-    deps = ["@com_github_sirupsen_logrus//:logrus"],
+    deps = [
+        "@com_github_mattn_go_sqlite3//:go-sqlite3",
+        "@com_github_sirupsen_logrus//:logrus",
+    ],
 )
 
 go_test(
     name = "gitDeps_test",
     srcs = [
         "gitDeps_test.go",
+        "sql_test.go",
         "xml_test.go",
     ],
     embed = [":gitDeps"],

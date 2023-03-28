@@ -26,7 +26,7 @@ var printUrlsCmd = &cobra.Command{
 			logrus.Exit(UnknownExitCode)
 		}
 
-		manifest, err := gitDeps.GetManifestFromInput(input)
+		manifest, err := gitDeps.GetManifestFromPath(input)
 		if err != nil {
 			logrus.Errorf("error decoding dependency file: %s", err)
 			logrus.Exit(UnknownExitCode)

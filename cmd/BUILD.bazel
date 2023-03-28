@@ -7,6 +7,7 @@ go_library(
         "gitDeps.go",
         "printUrls.go",
         "root.go",
+        "shas.go",
     ],
     importpath = "kreempuff.dev/rules-unreal-engine/cmd",
     visibility = ["//visibility:public"],
