@@ -28,15 +28,25 @@ def _unreal_engine_impl(repo_ctx):
     )
     repo_ctx.execute(["chmod", "+x", "tools/deno/deno"])
 
-    #   Result is a comma separated list of urls to download
-    result = repo_ctx.execute(["tools/deno/deno", "run", "--allow-read", "--allow-write", repo_ctx.path(repo_ctx.attr._parse_xml_script), "UnrealEngine/Engine/Build/Commit.gitdeps.xml", "Commit.gitdeps.json"])
+    # Result is a json file with this structure:
+    # {
+    #   "<PACK_HASH>": {
+    #     "url": "<URL>",
+    #     "sha256": "<SHA256>",
+    #   },
+    #   ...
+    # }
+    deps_json_filename = "Commit.gitdeps.json"
+    result = repo_ctx.execute(["tools/deno/deno", "run", "--allow-env", "--allow-read", "--allow-write", repo_ctx.path(repo_ctx.attr._parse_xml_script), "UnrealEngine/Engine/Build/Commit.gitdeps.xml", deps_json_filename, repo_ctx.path(repo_ctx.attr._sqlitedb)])
     if result.return_code != 0:
         fail("Failed to parse gitdeps file" + "\n" + result.stderr)
-    urls = result.stdout.split(",")
-    for url in urls:
+    deps_str = repo_ctx.read(deps_json_filename)
+    deps = json.decode(deps_str)
+    for hash, pack in deps.items():
         repo_ctx.download(
-            url = url,
-            output = "packs",
+            url = pack.get("url"),
+            sha256 = pack.get("sha256"),
+            output = "gitdeps/" + hash,
         )
 
 unreal_engine = repository_rule(
@@ -54,6 +64,10 @@ configured to clone Unreal Engine from the given repository""",
         ),
         "_parse_xml_script": attr.label(
             default = "@//parse-xml:index.ts",
+            allow_single_file = True,
+        ),
+        "_sqlitedb": attr.label(
+            default = "@//:shas.db",
             allow_single_file = True,
         ),
     },
