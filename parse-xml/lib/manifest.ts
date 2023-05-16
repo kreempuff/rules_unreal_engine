@@ -3,7 +3,6 @@ import {GzipStream} from "https://deno.land/x/compress@v0.4.4/mod.ts";
 import {exists as fileExists} from "https://deno.land/std@0.185.0/fs/mod.ts";
 
 
-
 interface GitDependeciesManifestFile {
     DependencyManifest: {
         Files: {
@@ -38,7 +37,7 @@ interface GitDependeciesManifestFile {
     }
 }
 
-export function parseManifestFromFile(filename: string): GitDependeciesManifestFile {
+function parseManifestFromFile(filename: string): GitDependeciesManifestFile {
     const data = Deno.readTextFileSync(filename);
 
     const parser = new XMLParser({
@@ -50,7 +49,7 @@ export function parseManifestFromFile(filename: string): GitDependeciesManifestF
 /**
  * GitDependencies
  */
-class GitDependencies {
+export class GitDependencies {
 
     private _manifest: GitDependeciesManifestFile;
     private _packDirectory: string;
@@ -76,21 +75,33 @@ class GitDependencies {
     /**
      * Returns the list of all files in the manifest
      */
-    printAllFiles(): string[] {
+    allFiles(): string[] {
         return this._manifest.DependencyManifest.Files.File.map(file => file["@_Name"]);
     }
 
     /**
      * Returns the list of all packs in the manifest
      */
-    printAllPacks(): string[] {
+    allPacks(): string[] {
         return this._manifest.DependencyManifest.Packs.Pack.map(pack => pack["@_Hash"]);
     }
 
-    async getFileBytes(filename: string): Uint8Array {
+    /**
+     * Returns the file info from the manifest
+     * @param filename
+     */
+    file(filename: string): GitDependeciesManifestFile["DependencyManifest"]["Files"]["File"][number] {
+        const result = this._manifest.DependencyManifest.Files.File.find(file => file["@_Name"] === filename);
+        if (!result) {
+            throw new Error(`File ${filename} not found in manifest`);
+        }
+        return result;
+    }
+
+
+    async getFileBytes(filename: string): Promise<Uint8Array> {
         const file = this._manifest.DependencyManifest.Files.File.find(file => file["@_Name"] === filename);
         if (!file) {
-
             throw new Error(`File ${filename} not found in manifest`);
         }
 
@@ -124,15 +135,7 @@ class GitDependencies {
         const blobSize = Number(blob["@_Size"]);
         const blobBytes = new Uint8Array(blobSize);
         await uncompressedPackFile.read(blobBytes);
-
-
-        // print the file name, blob hash, and pack hash
-        console.log(file["@_Name"]);
-        console.log(blob["@_Hash"]);
-        console.log(pack["@_Hash"]);
-
-        // print the first blob as string
-        console.log(new TextDecoder().decode(blobBytes));
+        return blobBytes;
     }
 }
 
