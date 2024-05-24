@@ -1,10 +1,10 @@
 def _unreal_engine_impl(repo_ctx):
     repo_ctx.file("WORKSPACE", "")
     repo_ctx.file("BUILD", """""")
+
     exec_result = repo_ctx.execute(["git", "clone", repo_ctx.attr.git_repository, "--depth", "1", "--branch", repo_ctx.attr.commit, "UnrealEngine"], quiet = False)
     if exec_result.return_code != 0:
-        fail("Failed to clone Unreal Engine")
-    repo_ctx.file("UnrealEngine/BUILD", """exports_files(["Setup.sh"])""")
+        fail("Failed to clone Unreal Engine: " + exec_result.stdout + exec_result.stderr)
 
     version = "v1.30.1"
     arch = ""
@@ -28,8 +28,6 @@ def _unreal_engine_impl(repo_ctx):
     )
     repo_ctx.execute(["chmod", "+x", "tools/deno/deno"])
     repo_ctx.execute(["tools/deno/deno", "run", "--allow-read", "--allow-write", repo_ctx.path(repo_ctx.attr._parse_xml_script), "UnrealEngine/Engine/Build/Commit.gitdeps.xml", "Commit.gitdeps.json"])
-
-#    repo_ctx.execute(["tools/deno/deno", "run", "--allow-read", "--allow-write", "--allow-run", repo_ctx.attr._parse_xml_script.path, "UnrealEngine/Engine/Build/Commit.gitdeps.xml", "Commit.gitdeps.json"])
 
 unreal_engine = repository_rule(
     implementation = _unreal_engine_impl,

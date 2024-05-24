@@ -2,3 +2,12 @@ module(
     name = "rules_unreal_engine",
     version = "0.0.1",
 )
+
+unreal_engine = use_repo_rule("//internal/repo:rule.bzl", "unreal_engine")
+
+unreal_engine(
+    name = "unreal_engine",
+    commit = "kreempuff-release",
+    #    git_repository = "https://github.com/kreempuff/UnrealEngine.git",
+    git_repository = "file:///Users/kareemmarch/Projects/UnrealEngine",
+)
