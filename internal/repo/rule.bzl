@@ -29,6 +29,9 @@ def _unreal_engine_impl(repo_ctx):
     repo_ctx.execute(["chmod", "+x", "tools/deno/deno"])
     repo_ctx.execute(["tools/deno/deno", "run", "--allow-read", "--allow-write", repo_ctx.path(repo_ctx.attr._parse_xml_script), "UnrealEngine/Engine/Build/Commit.gitdeps.xml", "Commit.gitdeps.json"])
 
+    # Create build file
+    repo_ctx.file("UnrealEngine/BUILD", """exports_files(["Setup.sh"])""")
+
 unreal_engine = repository_rule(
     implementation = _unreal_engine_impl,
     doc = """Downloads and configures an instance of Unreal Engine. Expects `git` to be installed on the system and
