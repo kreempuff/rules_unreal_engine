@@ -23,5 +23,3 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-bazel-
       - run: bazel test --config ci //:unreal_target_test
-      - run: bazel build --config ci //:rules-unreal-engine
-
