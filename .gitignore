@@ -18,3 +18,5 @@
 !.adr-dir
 !.bazelrc
 !*.bzl
+!dagger/
+!dagger.json
