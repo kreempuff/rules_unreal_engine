@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_binary")
+load(":rules_test.bzl", "unreal_target_test_suite")
+
+go_binary(
+    name = "rules_unreal_engine",
+    srcs = ["main.go"],
+    visibility = ["//visibility:public"],
+    deps = ["//cmd"],
+)
+
+unreal_target_test_suite(
+    name = "unreal_target_test",
+)
+
+sh_binary(
+    name = "Setup.sh",
+    srcs = ["@unreal_engine//UnrealEngine:Setup.sh"],
+    visibility = ["//visibility:public"],
+)
