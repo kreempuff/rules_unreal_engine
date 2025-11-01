@@ -11,25 +11,27 @@ setup_file() {
 
     # Clone UE once if RUN_SLOW_TESTS=1
     if [ -n "$RUN_SLOW_TESTS" ]; then
-        export UE_CLONE_DIR="$BATS_TEST_TMPDIR/UnrealEngine"
+        # Use mktemp for reliable temp directory (BATS_TEST_TMPDIR not always set in setup_file)
+        TEMP_BASE="$(mktemp -d)"
+        export UE_CLONE_DIR="$TEMP_BASE/UnrealEngine"
         export UE_GIT_URL="${UE_GIT_URL:-https://github.com/EpicGames/UnrealEngine.git}"
         export UE_BRANCH="${UE_BRANCH:-5.5}"
 
-        if [ ! -d "$UE_CLONE_DIR" ]; then
-            echo "# Cloning UE once for Core build tests (5-10 minutes)..." >&3
-            echo "# URL: $UE_GIT_URL" >&3
-            echo "# Branch: $UE_BRANCH" >&3
+        echo "# Cloning UE to: $UE_CLONE_DIR..." >&3
+        echo "# URL: $UE_GIT_URL" >&3
+        echo "# Branch: $UE_BRANCH" >&3
 
-            git clone \
-                --depth 1 \
-                --branch "$UE_BRANCH" \
-                --single-branch \
-                "$UE_GIT_URL" \
-                "$UE_CLONE_DIR" || {
-                rm -rf "$UE_CLONE_DIR"
-                export UE_CLONE_FAILED=1
-            }
-        fi
+        git clone \
+            --depth 1 \
+            --branch "$UE_BRANCH" \
+            --single-branch \
+            "$UE_GIT_URL" \
+            "$UE_CLONE_DIR" || {
+            echo "# Clone failed with exit code: $?" >&3
+            rm -rf "$UE_CLONE_DIR"
+            rm -rf "$TEMP_BASE"
+            export UE_CLONE_FAILED=1
+        }
     fi
 }
 
@@ -56,8 +58,15 @@ setup() {
         skip "Slow test - set RUN_SLOW_TESTS=1"
     fi
 
-    if [ -n "$UE_CLONE_FAILED" ]; then
-        skip "UE clone failed"
+    echo "# Debug: UE_CLONE_DIR=$UE_CLONE_DIR" >&3
+    echo "# Debug: BATS_TEST_TMPDIR=$BATS_TEST_TMPDIR" >&3
+
+    # Check if UE clone actually exists and has Engine directory
+    if [ ! -d "$UE_CLONE_DIR/Engine/Source" ]; then
+        echo "# Debug: Directory check failed" >&3
+        echo "# Debug: Listing $UE_CLONE_DIR:" >&3
+        ls -la "$UE_CLONE_DIR" 2>&1 >&3 || echo "# Directory doesn't exist" >&3
+        skip "UE clone not available (Engine/Source not found at $UE_CLONE_DIR)"
     fi
 
     cd "$UE_CLONE_DIR"
