@@ -16,14 +16,20 @@ setup_file() {
 
     # For E2E tests: Clone UE once if RUN_SLOW_TESTS=1
     if [ -n "$RUN_SLOW_TESTS" ]; then
-        export UE_CLONE_DIR="$BATS_TEST_TMPDIR/UnrealEngine"
+        # Use persistent .test_ue/ directory (gitignored)
+        export UE_CLONE_DIR="$PROJECT_ROOT/.test_ue/UnrealEngine"
         export UE_GIT_URL="${UE_GIT_URL:-https://github.com/EpicGames/UnrealEngine.git}"
         export UE_BRANCH="${UE_BRANCH:-5.5}"
 
-        if [ ! -d "$UE_CLONE_DIR" ]; then
-            echo "# Cloning UE once for all E2E tests (this takes 5-10 minutes)..." >&3
+        if [ ! -d "$UE_CLONE_DIR/Engine/Source" ]; then
+            echo "# Cloning UE to persistent test directory (5-10 minutes)..." >&3
+            echo "# Location: $UE_CLONE_DIR" >&3
             echo "# URL: $UE_GIT_URL" >&3
             echo "# Branch: $UE_BRANCH" >&3
+            echo "# (Clone persists in .test_ue/ - delete to re-clone)" >&3
+
+            rm -rf "$UE_CLONE_DIR"
+            mkdir -p "$(dirname "$UE_CLONE_DIR")"
 
             git clone \
                 --depth 1 \
@@ -32,30 +38,31 @@ setup_file() {
                 "$UE_GIT_URL" \
                 "$UE_CLONE_DIR" || {
                 # Clone failed - tests will skip
+                echo "# Clone failed" >&3
                 rm -rf "$UE_CLONE_DIR"
                 export UE_CLONE_FAILED=1
             }
+        else
+            echo "# Using existing UE clone at: $UE_CLONE_DIR" >&3
         fi
     fi
 }
 
 teardown_file() {
-    # Cleanup UE clone after all tests
-    if [ -n "$UE_CLONE_DIR" ] && [ -d "$UE_CLONE_DIR" ]; then
-        rm -rf "$UE_CLONE_DIR"
-    fi
+    # Don't delete - clone persists in .test_ue/ for faster re-runs
+    # To clean: rm -rf .test_ue/
+    :
 }
 
 setup() {
-    cd "$PROJECT_ROOT"
-
     # Reset UE clone to clean state before each E2E test
     if [ -n "$UE_CLONE_DIR" ] && [ -d "$UE_CLONE_DIR" ]; then
         cd "$UE_CLONE_DIR"
         git reset --hard HEAD >/dev/null 2>&1
         git clean -fdx >/dev/null 2>&1
-        cd "$PROJECT_ROOT"
     fi
+
+    cd "$PROJECT_ROOT"
 }
 
 @test "ue_module: Simple module builds successfully" {

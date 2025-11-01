@@ -11,46 +11,52 @@ setup_file() {
 
     # Clone UE once if RUN_SLOW_TESTS=1
     if [ -n "$RUN_SLOW_TESTS" ]; then
-        # Use mktemp for reliable temp directory (BATS_TEST_TMPDIR not always set in setup_file)
-        TEMP_BASE="$(mktemp -d)"
-        export UE_CLONE_DIR="$TEMP_BASE/UnrealEngine"
+        # Use persistent .test_ue/ directory for faster iteration
+        export UE_CLONE_DIR="$PROJECT_ROOT/.test_ue/UnrealEngine"
         export UE_GIT_URL="${UE_GIT_URL:-https://github.com/EpicGames/UnrealEngine.git}"
         export UE_BRANCH="${UE_BRANCH:-5.5}"
 
-        echo "# Cloning UE to: $UE_CLONE_DIR..." >&3
-        echo "# URL: $UE_GIT_URL" >&3
-        echo "# Branch: $UE_BRANCH" >&3
+        if [ ! -d "$UE_CLONE_DIR/Engine/Source" ]; then
+            echo "# Cloning UE to persistent test directory (5-10 minutes)..." >&3
+            echo "# Location: $UE_CLONE_DIR" >&3
+            echo "# URL: $UE_GIT_URL" >&3
+            echo "# Branch: $UE_BRANCH" >&3
+            echo "# (This clone persists in .test_ue/ for faster re-runs)" >&3
 
-        git clone \
-            --depth 1 \
-            --branch "$UE_BRANCH" \
-            --single-branch \
-            "$UE_GIT_URL" \
-            "$UE_CLONE_DIR" || {
-            echo "# Clone failed with exit code: $?" >&3
             rm -rf "$UE_CLONE_DIR"
-            rm -rf "$TEMP_BASE"
-            export UE_CLONE_FAILED=1
-        }
+            mkdir -p "$(dirname "$UE_CLONE_DIR")"
+
+            git clone \
+                --depth 1 \
+                --branch "$UE_BRANCH" \
+                --single-branch \
+                "$UE_GIT_URL" \
+                "$UE_CLONE_DIR" || {
+                echo "# Clone failed with exit code: $?" >&3
+                rm -rf "$UE_CLONE_DIR"
+                export UE_CLONE_FAILED=1
+            }
+        else
+            echo "# Using existing UE clone at: $UE_CLONE_DIR" >&3
+        fi
     fi
 }
 
 teardown_file() {
-    if [ -n "$UE_CLONE_DIR" ] && [ -d "$UE_CLONE_DIR" ]; then
-        rm -rf "$UE_CLONE_DIR"
-    fi
+    # Don't delete UE clone - it persists in .test_ue/ for reuse
+    # To clean: rm -rf .test_ue/
+    :
 }
 
 setup() {
-    cd "$PROJECT_ROOT"
-
-    # Reset UE clone before each test
+    # Reset UE clone to clean state before each test
     if [ -n "$UE_CLONE_DIR" ] && [ -d "$UE_CLONE_DIR" ]; then
         cd "$UE_CLONE_DIR"
         git reset --hard HEAD >/dev/null 2>&1
         git clean -fdx >/dev/null 2>&1
-        cd "$PROJECT_ROOT"
     fi
+
+    cd "$PROJECT_ROOT"
 }
 
 @test "Core: Create minimal BUILD.bazel for Core module" {
