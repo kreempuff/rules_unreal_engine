@@ -7,7 +7,7 @@ def _parse_pack_urls(repo_ctx, manifest_path):
         "gitDeps",
         "printUrls",
         "--input", manifest_path,
-        "--format", "json",
+        "--output", "json",
     ])
 
     if result.return_code != 0:
