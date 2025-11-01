@@ -62,29 +62,8 @@ setup() {
 
     cd "$UE_CLONE_DIR"
 
-    # Add MODULE.bazel
-    cat > MODULE.bazel << EOF
-module(name = "unreal_engine", version = "5.5.0")
-
-bazel_dep(name = "rules_unreal_engine")
-local_path_override(
-    module_name = "rules_unreal_engine",
-    path = "$PROJECT_ROOT",
-)
-EOF
-
-    # Create minimal BUILD.bazel for Core (no dependencies yet)
-    cat > Engine/Source/Runtime/Core/BUILD.bazel << 'EOF'
-load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
-
-ue_module(
-    name = "Core",
-    module_type = "Runtime",
-    # Sources auto-discovered from Private/**/*.cpp
-    # Headers auto-discovered from Public/**/*.h
-    visibility = ["//visibility:public"],
-)
-EOF
+    # Install BUILD files using install script
+    "$PROJECT_ROOT/tools/install_builds.sh" .
 
     # Try to build Core
     run bazel build //Engine/Source/Runtime/Core:Core

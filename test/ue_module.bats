@@ -257,19 +257,9 @@ local_path_override(
 )
 EOF
 
-    # Create BUILD.bazel for AtomicQueue (header-only, no dependencies!)
-    cat > Engine/Source/ThirdParty/AtomicQueue/BUILD.bazel << 'EOF'
-load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
-
-ue_module(
-    name = "AtomicQueue",
-    module_type = "ThirdParty",
-    # Header-only module
-    srcs = [],
-    hdrs = ["AtomicQueue.h"],
-    visibility = ["//visibility:public"],
-)
-EOF
+    # Install BUILD files from ue_modules/
+    cp "$PROJECT_ROOT/ue_modules/ThirdParty/AtomicQueue/BUILD.bazel" \
+       Engine/Source/ThirdParty/AtomicQueue/BUILD.bazel
 
     # Build the module (header-only, should be fast)
     run bazel build //Engine/Source/ThirdParty/AtomicQueue:AtomicQueue

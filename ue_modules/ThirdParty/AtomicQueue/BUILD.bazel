@@ -1,0 +1,21 @@
+"""Unreal Engine AtomicQueue module (header-only).
+
+Lock-free queue implementation from third-party library.
+
+Converted from: Engine/Source/ThirdParty/AtomicQueue/AtomicQueue.Build.cs
+"""
+
+load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
+
+ue_module(
+    name = "AtomicQueue",
+    module_type = "ThirdParty",
+
+    # Header-only module
+    srcs = [],
+    hdrs = ["AtomicQueue.h"],
+
+    # No dependencies - standalone header-only library
+
+    visibility = ["//visibility:public"],
+)
