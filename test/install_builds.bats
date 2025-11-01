@@ -56,36 +56,50 @@ teardown() {
     [ ! -f "$TEST_UE_DIR/Engine/Source/Runtime/TraceLog/BUILD.bazel" ]
 }
 
-@test "install_builds: Installs Core BUILD.bazel" {
+@test "install_builds: Installs all discovered BUILD files" {
     run "$INSTALL_SCRIPT" "$TEST_UE_DIR"
 
     [ "$status" -eq 0 ]
-    [ -f "$TEST_UE_DIR/Engine/Source/Runtime/Core/BUILD.bazel" ]
 
-    # Verify content
-    grep -q "ue_module" "$TEST_UE_DIR/Engine/Source/Runtime/Core/BUILD.bazel"
-    grep -q "name = \"Core\"" "$TEST_UE_DIR/Engine/Source/Runtime/Core/BUILD.bazel"
+    # Dynamically check all BUILD files from ue_modules/ were installed
+    cd "$PROJECT_ROOT"
+    find ue_modules -name "BUILD.bazel" -type f | while read build_file; do
+        # Extract module path
+        rel_path="${build_file#ue_modules/}"
+        module_path="${rel_path%/BUILD.bazel}"
+
+        dest="$TEST_UE_DIR/Engine/Source/$module_path/BUILD.bazel"
+
+        # Verify it was installed
+        if [ ! -f "$dest" ]; then
+            echo "Missing: $dest"
+            return 1
+        fi
+
+        # Verify it has ue_module
+        if ! grep -q "ue_module" "$dest"; then
+            echo "Invalid BUILD file (missing ue_module): $dest"
+            return 1
+        fi
+    done
 }
 
-@test "install_builds: Installs TraceLog BUILD.bazel" {
+@test "install_builds: All installed BUILD files have valid syntax" {
     "$INSTALL_SCRIPT" "$TEST_UE_DIR"
 
-    [ -f "$TEST_UE_DIR/Engine/Source/Runtime/TraceLog/BUILD.bazel" ]
-    grep -q "TraceLog" "$TEST_UE_DIR/Engine/Source/Runtime/TraceLog/BUILD.bazel"
-}
+    # Check each installed BUILD file
+    cd "$PROJECT_ROOT"
+    find ue_modules -name "BUILD.bazel" -type f | while read build_file; do
+        rel_path="${build_file#ue_modules/}"
+        module_path="${rel_path%/BUILD.bazel}"
+        dest="$TEST_UE_DIR/Engine/Source/$module_path/BUILD.bazel"
 
-@test "install_builds: Installs BuildSettings BUILD.bazel" {
-    "$INSTALL_SCRIPT" "$TEST_UE_DIR"
-
-    [ -f "$TEST_UE_DIR/Engine/Source/Runtime/BuildSettings/BUILD.bazel" ]
-    grep -q "BuildSettings" "$TEST_UE_DIR/Engine/Source/Runtime/BuildSettings/BUILD.bazel"
-}
-
-@test "install_builds: Installs AtomicQueue BUILD.bazel" {
-    "$INSTALL_SCRIPT" "$TEST_UE_DIR"
-
-    [ -f "$TEST_UE_DIR/Engine/Source/ThirdParty/AtomicQueue/BUILD.bazel" ]
-    grep -q "AtomicQueue" "$TEST_UE_DIR/Engine/Source/ThirdParty/AtomicQueue/BUILD.bazel"
+        # Verify ue_module load statement
+        grep -q '@rules_unreal_engine//bzl:module.bzl' "$dest" || {
+            echo "Missing ue_module load in: $dest"
+            return 1
+        }
+    done
 }
 
 @test "install_builds: Creates MODULE.bazel if missing" {
@@ -107,20 +121,6 @@ teardown() {
 
     # Should not overwrite
     grep -q "# Custom MODULE.bazel" "$TEST_UE_DIR/MODULE.bazel"
-}
-
-@test "install_builds: All BUILD files have correct ue_module load" {
-    "$INSTALL_SCRIPT" "$TEST_UE_DIR"
-
-    # Check all installed BUILD files load ue_module
-    for build in "$TEST_UE_DIR"/Engine/Source/*/*/BUILD.bazel; do
-        if [ -f "$build" ]; then
-            grep -q '@rules_unreal_engine//bzl:module.bzl' "$build" || {
-                echo "Missing ue_module load in: $build"
-                return 1
-            }
-        fi
-    done
 }
 
 @test "install_builds: Installed BUILD files are valid Starlark" {

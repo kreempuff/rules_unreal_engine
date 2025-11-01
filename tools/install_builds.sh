@@ -33,39 +33,33 @@ echo "From: $UE_MODULES_DIR"
 echo "To:   $UE_PATH/Engine/Source"
 echo ""
 
-# Function to install BUILD file
-install_build() {
-    local src="$1"
-    local dst="$2"
+# Discover and install all BUILD files from ue_modules/
+install_count=0
+find "$UE_MODULES_DIR" -name "BUILD.bazel" -type f | while read build_file; do
+    # Extract relative path from ue_modules/
+    # e.g., /path/to/ue_modules/Runtime/Core/BUILD.bazel -> Runtime/Core
+    rel_path="${build_file#$UE_MODULES_DIR/}"
+    module_path="${rel_path%/BUILD.bazel}"
 
-    if [ "$DRY_RUN" = "--dry-run" ]; then
-        echo "[DRY RUN] Would copy: $src -> $dst"
+    # Destination in UE
+    dest="$UE_PATH/Engine/Source/$module_path/BUILD.bazel"
+
+    # Check if destination directory exists
+    if [ -d "$(dirname "$dest")" ]; then
+        if [ "$DRY_RUN" = "--dry-run" ]; then
+            echo "[DRY RUN] Would copy: $module_path/BUILD.bazel"
+        else
+            echo "Installing: Engine/Source/$module_path/BUILD.bazel"
+            cp "$build_file" "$dest"
+        fi
+        install_count=$((install_count + 1))
     else
-        echo "Installing: $dst"
-        cp "$src" "$dst"
+        echo "Warning: Skipping $module_path (directory not found in UE)"
     fi
-}
+done
 
-# Install Runtime modules
-if [ -f "$UE_MODULES_DIR/Runtime/Core/BUILD.bazel" ]; then
-    install_build "$UE_MODULES_DIR/Runtime/Core/BUILD.bazel" \
-                  "$UE_PATH/Engine/Source/Runtime/Core/BUILD.bazel"
-fi
-
-if [ -f "$UE_MODULES_DIR/Runtime/TraceLog/BUILD.bazel" ]; then
-    install_build "$UE_MODULES_DIR/Runtime/TraceLog/BUILD.bazel" \
-                  "$UE_PATH/Engine/Source/Runtime/TraceLog/BUILD.bazel"
-fi
-
-if [ -f "$UE_MODULES_DIR/Runtime/BuildSettings/BUILD.bazel" ]; then
-    install_build "$UE_MODULES_DIR/Runtime/BuildSettings/BUILD.bazel" \
-                  "$UE_PATH/Engine/Source/Runtime/BuildSettings/BUILD.bazel"
-fi
-
-# Install ThirdParty modules
-if [ -f "$UE_MODULES_DIR/ThirdParty/AtomicQueue/BUILD.bazel" ]; then
-    install_build "$UE_MODULES_DIR/ThirdParty/AtomicQueue/BUILD.bazel" \
-                  "$UE_PATH/Engine/Source/ThirdParty/AtomicQueue/BUILD.bazel"
+if [ "$install_count" -eq 0 ]; then
+    echo "Warning: No BUILD files found to install"
 fi
 
 # Create MODULE.bazel if it doesn't exist
