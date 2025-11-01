@@ -17,6 +17,7 @@ def ue_module(
         system_includes = [],
         defines = [],
         local_defines = [],
+        copts = [],
         linkopts = [],
         frameworks = [],
         visibility = None,
@@ -45,6 +46,8 @@ def ue_module(
             Maps to: PublicDefinitions
         local_defines: Private preprocessor definitions
             Maps to: PrivateDefinitions
+        copts: Compiler options. UE defaults are added automatically.
+            Override with additional flags as needed.
         linkopts: Linker options and system libraries
             Maps to: PublicSystemLibraries, PublicAdditionalLibraries
         frameworks: Apple frameworks (Mac/iOS/tvOS/visionOS)
@@ -90,6 +93,18 @@ def ue_module(
             ],
             allow_empty = True,
         )
+
+    # UE default compiler flags (from UBT ClangToolChain.cs)
+    ue_default_copts = [
+        "-std=c++20",                      # C++20 standard (UE default)
+        "-fno-exceptions",                 # Exceptions OFF (UE default)
+        "-fno-rtti",                       # RTTI OFF (UE default)
+        "-Wall",                           # Enable all warnings
+        "-fdiagnostics-absolute-paths",    # Full paths in errors
+    ]
+
+    # Combine user copts with UE defaults (user copts can override)
+    all_copts = ue_default_copts + copts
 
     # Build include paths
     includes = []
@@ -141,6 +156,7 @@ def ue_module(
         includes = includes,
         defines = defines,
         local_defines = local_defines,
+        copts = all_copts,
         linkopts = processed_linkopts,
         visibility = visibility,
         tags = tags,

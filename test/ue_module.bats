@@ -128,6 +128,17 @@ setup() {
     [[ "$output" =~ "includes" ]]
 }
 
+@test "ue_module: UE compiler flags are applied (C++20, no exceptions, no RTTI)" {
+    # This test validates that UE default flags are working
+    # TestUEFlags.cpp has #error directives that fail if flags are wrong
+    run bazel build //test/module_rule_test:UEFlagsTest
+
+    echo "Output: $output"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "Build completed successfully" ]]
+    [[ "$output" =~ "libUEFlagsTest.a" ]]
+}
+
 @test "ue_module: Clean build from scratch" {
     # Clean first
     bazel clean
