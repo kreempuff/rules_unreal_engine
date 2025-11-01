@@ -344,16 +344,22 @@ When testing features that interact with Unreal Engine source code:
 **Compiler Flags:**
 - ✅ Extract flags from ClangToolChain.cs
 - ✅ Document in `docs/UE_COMPILER_FLAGS.md`
-- ✅ Add UE default flags to `ue_module` rule (-std=c++20, -fno-exceptions, -fno-rtti, etc.)
+- ✅ Add UE default compiler flags (-std=c++20, -fno-exceptions, -fno-rtti, -Wall)
+- ✅ Add UE build configuration defines (UE_BUILD_*, WITH_*, IS_*)
+- ✅ Add platform defines (UBT_COMPILED_PLATFORM, PLATFORM_MAC, etc.)
+- ✅ Add module API macros (CORE_API, ENGINE_API, auto-generated)
 - ✅ Test flags with compile-time validation (TestUEFlags.cpp)
 - 🔲 Validate: Compare Bazel vs UBT output (symbols, binary format)
 
 **Build Core Module:**
-- 🔲 Write BUILD.bazel files for Core's dependencies (TraceLog, BuildSettings, etc.)
-- 🔲 Try building Core module
-- 🔲 Fix include path issues
-- 🔲 Fix missing preprocessor defines
-- 🔲 Get Core to compile (expect to hit UHT requirement)
+- ✅ Create BUILD.bazel for Core module
+- ✅ Fix include path issues (added Private/ and Internal/ to includes)
+- ✅ Fix missing preprocessor defines (all UE_BUILD_*, WITH_*, platform defines)
+- ✅ Try building Core module (compiles, but needs dependencies)
+- 🔲 Write BUILD.bazel for TraceLog module (Core dependency)
+- 🔲 Write BUILD.bazel for other Core dependencies (BuildSettings, AtomicQueue, etc.)
+- 🔲 Get Core to fully compile
+- 🔲 Expected blocker: UHT-generated code (*.generated.h)
 
 **UnrealHeaderTool (UHT) Integration:**
 - 🔲 Build UHT as Bazel target
