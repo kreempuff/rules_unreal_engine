@@ -72,18 +72,24 @@ def ue_module(
 
     # Default source/header discovery
     if srcs == None:
-        srcs = native.glob([
-            "Private/**/*.cpp",
-            "Private/**/*.c",
-            "Private/**/*.mm",  # Objective-C++
-        ])
+        srcs = native.glob(
+            [
+                "Private/**/*.cpp",
+                "Private/**/*.c",
+                "Private/**/*.mm",  # Objective-C++
+            ],
+            allow_empty = True,
+        )
 
     if hdrs == None:
-        hdrs = native.glob([
-            "Public/**/*.h",
-            "Public/**/*.hpp",
-            "Public/**/*.inl",
-        ])
+        hdrs = native.glob(
+            [
+                "Public/**/*.h",
+                "Public/**/*.hpp",
+                "Public/**/*.inl",
+            ],
+            allow_empty = True,
+        )
 
     # Build include paths
     includes = []

@@ -284,13 +284,48 @@ bazel build //cmd/...
 
 # Run tests
 bazel test //...
+
+# Run BATS integration tests
+bats test/gitdeps.bats
+bats test/ue_module.bats
+```
+
+### Testing Guidelines
+
+**IMPORTANT: Always use BATS tests for real repository structures**
+
+When testing features that interact with Unreal Engine source code:
+
+✅ **DO:**
+- Create mock UE directory structures in BATS tests using temp directories
+- Copy minimal source files into test/ue_*_test/ directories
+- Test with representative examples (e.g., TraceLog-like module)
+- Clean up test directories in teardown
+
+❌ **DO NOT:**
+- Modify files in actual UnrealEngine repository during tests
+- Write BUILD files directly to /Users/kareemmarch/Projects/UnrealEngine
+- Depend on specific UE checkout states in tests
+
+**Example:**
+```bash
+@test "Build real UE module structure" {
+    mkdir -p test/my_module_test/Public
+    mkdir -p test/my_module_test/Private
+    # Create minimal source files...
+    # Create BUILD.bazel...
+    bazel build //test/my_module_test:MyModule
+    # Cleanup
+    rm -rf test/my_module_test
+}
 ```
 
 ### Current Priorities
 
-1. Complete Phase 1.1: Setup.sh replacement (gitDeps.go)
-2. Begin Phase 1.2: Module graph analysis (.Build.cs parsing)
-3. Document architecture decisions in `docs/decisions/`
+1. ✅ ~~Complete Phase 1.1: Setup.sh replacement (gitDeps.go)~~ **DONE**
+2. **Active:** Phase 1.2: `ue_module` Bazel rule (replaces .Build.cs)
+3. Test building Core and CoreUObject modules with Bazel
+4. Document architecture decisions in `docs/decisions/`
 
 ---
 

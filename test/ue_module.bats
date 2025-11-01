@@ -121,3 +121,115 @@ setup() {
     [[ "$output" =~ "DependentModule" ]]
     [[ "$output" =~ "PlatformModule" ]]
 }
+
+@test "ue_module: Real UE module structure builds (TraceLog-like mock)" {
+    # Create a realistic UE module structure in temp dir
+    TEST_MODULE_DIR="$PROJECT_ROOT/test/ue_real_module_test"
+    mkdir -p "$TEST_MODULE_DIR/Public"
+    mkdir -p "$TEST_MODULE_DIR/Private"
+
+    # Create minimal realistic source files
+    cat > "$TEST_MODULE_DIR/Public/TraceLog.h" << 'EOF'
+#pragma once
+
+// Minimal TraceLog-like header
+namespace UE { namespace Trace {
+    void Initialize();
+}}
+EOF
+
+    cat > "$TEST_MODULE_DIR/Private/TraceLog.cpp" << 'EOF'
+#include "TraceLog.h"
+
+namespace UE { namespace Trace {
+    void Initialize() {
+        // Implementation
+    }
+}}
+EOF
+
+    # Create BUILD.bazel using ue_module
+    cat > "$TEST_MODULE_DIR/BUILD.bazel" << 'EOF'
+load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
+
+ue_module(
+    name = "TraceLog",
+    module_type = "Runtime",
+    local_defines = ["SUPPRESS_PER_MODULE_INLINE_FILE"],
+    visibility = ["//visibility:public"],
+)
+EOF
+
+    # Build the module
+    run bazel build //test/ue_real_module_test:TraceLog
+
+    echo "Output: $output"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "Build completed successfully" ]]
+    [[ "$output" =~ "libTraceLog.a" ]]
+
+    # Cleanup
+    rm -rf "$TEST_MODULE_DIR"
+}
+
+@test "ue_module: E2E - Clone real UE and build TraceLog module" {
+    # Skip unless RUN_SLOW_TESTS=1
+    if [ -z "$RUN_SLOW_TESTS" ]; then
+        skip "Slow test - set RUN_SLOW_TESTS=1 to run (takes 5-10 minutes)"
+    fi
+
+    # Create temp directory for UE clone
+    UE_CLONE_DIR="$(mktemp -d)"
+    echo "Cloning UE to: $UE_CLONE_DIR"
+
+    # Clone minimal UE (just what we need for TraceLog)
+    # Using depth 1 and sparse checkout for speed
+    git clone \
+        --depth 1 \
+        --branch 5.5 \
+        --single-branch \
+        https://github.com/EpicGames/UnrealEngine.git \
+        "$UE_CLONE_DIR" || {
+        # If clone fails (requires auth), skip test
+        rm -rf "$UE_CLONE_DIR"
+        skip "Cannot clone UE (requires Epic GitHub access)"
+    }
+
+    cd "$UE_CLONE_DIR"
+
+    # Add rules_unreal_engine dependency
+    cat > MODULE.bazel << EOF
+module(name = "unreal_engine", version = "5.5.0")
+
+bazel_dep(name = "rules_unreal_engine")
+local_path_override(
+    module_name = "rules_unreal_engine",
+    path = "$PROJECT_ROOT",
+)
+EOF
+
+    # Create BUILD.bazel for TraceLog module
+    cat > Engine/Source/Runtime/TraceLog/BUILD.bazel << 'EOF'
+load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
+
+ue_module(
+    name = "TraceLog",
+    module_type = "Runtime",
+    local_defines = ["SUPPRESS_PER_MODULE_INLINE_FILE"],
+    visibility = ["//visibility:public"],
+)
+EOF
+
+    # Build the module
+    run bazel build //Engine/Source/Runtime/TraceLog:TraceLog
+
+    echo "Output: $output"
+
+    # Cleanup
+    cd /
+    rm -rf "$UE_CLONE_DIR"
+
+    # Assert build succeeded
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "Build completed successfully" ]] || [[ "$output" =~ "libTraceLog" ]]
+}
