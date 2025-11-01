@@ -272,3 +272,19 @@ EOF
     [ "$status" -eq 0 ]
     [[ "$output" =~ "Build completed successfully" ]]
 }
+
+@test "ue_module: E2E - Compare Bazel build with UBT build output" {
+    skip "TODO: Need to validate Bazel output matches UBT output"
+
+    # This test should:
+    # 1. Build AtomicQueue with UBT (Run Setup.sh + UnrealBuildTool)
+    # 2. Build AtomicQueue with Bazel (our ue_module rule)
+    # 3. Compare:
+    #    - Symbol exports (nm -g)
+    #    - Object file structure
+    #    - Library format
+    # 4. Assert they're compatible
+
+    # For now, we're just testing that Bazel CAN build.
+    # Full UBT comparison requires Setup.sh dependencies and UBT execution.
+}

@@ -150,7 +150,13 @@ Not yet implemented:
 - ❌ Bundle resources
 - ❌ Custom optimization overrides
 
-These will be added in future phases as needed.
+### Known Issues
+
+**Validation against UBT output:** We validate that Bazel CAN build UE modules, but have not yet compared the build artifacts (symbols, object files) against UBT's output to ensure binary compatibility. This is planned for Phase 1.3 when we integrate actual UE compilation settings.
+
+**Header-only modules tested:** Current E2E test uses AtomicQueue (header-only). Testing modules with actual .cpp files that depend on Core/Engine will require those dependencies to be built first (Phase 1.3+).
+
+These will be addressed in future phases as needed.
 
 ## Testing
 
