@@ -60,7 +60,6 @@ setup() {
         cd "$UE_CLONE_DIR"
         git reset --hard HEAD >/dev/null 2>&1
         git clean -fdx >/dev/null 2>&1
-        bash ./tools/install_builds.sh "$UE_CLONE_DIR"
     fi
 
     cd "$PROJECT_ROOT"
