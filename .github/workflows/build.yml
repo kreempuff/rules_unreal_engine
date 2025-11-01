@@ -13,7 +13,7 @@ jobs:
         os: [ ubuntu-22.04, macos-14 ]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: |
           mkdir -p ~/.cache/bazel
       - uses: actions/cache@v4
