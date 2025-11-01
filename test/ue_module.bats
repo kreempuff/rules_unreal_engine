@@ -1,12 +1,61 @@
 #!/usr/bin/env bats
 # Tests for ue_module Bazel rule
+#
+# Environment variables:
+#   RUN_SLOW_TESTS=1  - Enable E2E tests (clones real UE, takes 5-10 min)
+#   UE_GIT_URL        - UE git URL (default: https://github.com/EpicGames/UnrealEngine.git)
+#   UE_BRANCH         - UE branch/tag (default: 5.5)
+#
+# Examples:
+#   bats test/ue_module.bats                           # Fast tests only
+#   RUN_SLOW_TESTS=1 bats test/ue_module.bats         # Include E2E tests
+#   UE_BRANCH=5.4 RUN_SLOW_TESTS=1 bats test/ue_module.bats  # Test with UE 5.4
 
 setup_file() {
     export PROJECT_ROOT="$BATS_TEST_DIRNAME/.."
+
+    # For E2E tests: Clone UE once if RUN_SLOW_TESTS=1
+    if [ -n "$RUN_SLOW_TESTS" ]; then
+        export UE_CLONE_DIR="$BATS_TEST_TMPDIR/UnrealEngine"
+        export UE_GIT_URL="${UE_GIT_URL:-https://github.com/EpicGames/UnrealEngine.git}"
+        export UE_BRANCH="${UE_BRANCH:-5.5}"
+
+        if [ ! -d "$UE_CLONE_DIR" ]; then
+            echo "# Cloning UE once for all E2E tests (this takes 5-10 minutes)..." >&3
+            echo "# URL: $UE_GIT_URL" >&3
+            echo "# Branch: $UE_BRANCH" >&3
+
+            git clone \
+                --depth 1 \
+                --branch "$UE_BRANCH" \
+                --single-branch \
+                "$UE_GIT_URL" \
+                "$UE_CLONE_DIR" || {
+                # Clone failed - tests will skip
+                rm -rf "$UE_CLONE_DIR"
+                export UE_CLONE_FAILED=1
+            }
+        fi
+    fi
+}
+
+teardown_file() {
+    # Cleanup UE clone after all tests
+    if [ -n "$UE_CLONE_DIR" ] && [ -d "$UE_CLONE_DIR" ]; then
+        rm -rf "$UE_CLONE_DIR"
+    fi
 }
 
 setup() {
     cd "$PROJECT_ROOT"
+
+    # Reset UE clone to clean state before each E2E test
+    if [ -n "$UE_CLONE_DIR" ] && [ -d "$UE_CLONE_DIR" ]; then
+        cd "$UE_CLONE_DIR"
+        git reset --hard HEAD >/dev/null 2>&1
+        git clean -fdx >/dev/null 2>&1
+        cd "$PROJECT_ROOT"
+    fi
 }
 
 @test "ue_module: Simple module builds successfully" {
@@ -172,29 +221,18 @@ EOF
     rm -rf "$TEST_MODULE_DIR"
 }
 
-@test "ue_module: E2E - Clone real UE and build AtomicQueue (header-only)" {
+@test "ue_module: E2E - Build AtomicQueue from real UE (header-only)" {
     # Skip unless RUN_SLOW_TESTS=1
     if [ -z "$RUN_SLOW_TESTS" ]; then
-        skip "Slow test - set RUN_SLOW_TESTS=1 to run (takes 5-10 minutes)"
+        skip "Slow test - set RUN_SLOW_TESTS=1 to run (clones UE once)"
     fi
 
-    # Create temp directory for UE clone
-    UE_CLONE_DIR="$(mktemp -d)"
-    echo "Cloning UE to: $UE_CLONE_DIR"
+    # Skip if clone failed
+    if [ -n "$UE_CLONE_FAILED" ]; then
+        skip "UE clone failed (requires Epic GitHub access)"
+    fi
 
-    # Clone minimal UE
-    # Using depth 1 for speed
-    git clone \
-        --depth 1 \
-        --branch 5.5 \
-        --single-branch \
-        https://github.com/EpicGames/UnrealEngine.git \
-        "$UE_CLONE_DIR" || {
-        # If clone fails (requires auth), skip test
-        rm -rf "$UE_CLONE_DIR"
-        skip "Cannot clone UE (requires Epic GitHub access)"
-    }
-
+    # Use shared UE clone (setup_file cloned it once)
     cd "$UE_CLONE_DIR"
 
     # Add rules_unreal_engine dependency
@@ -227,9 +265,8 @@ EOF
 
     echo "Output: $output"
 
-    # Cleanup
-    cd /
-    rm -rf "$UE_CLONE_DIR"
+    # Return to project root (teardown will clean UE_CLONE_DIR)
+    cd "$PROJECT_ROOT"
 
     # Assert build succeeded
     [ "$status" -eq 0 ]
