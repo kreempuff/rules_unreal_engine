@@ -1,25 +1,27 @@
-**
-!.gitignore
-!.github
-!cmd
-!docs
-!internal
-!parse-xml
-!pkg
-!test
-!BUILD
-!BUILD.bazel
-!MODULE.bazel
-!MODULE.bazel.lock
-!*.go
-!go.*
-!.bazel_fix_commands.json
-!renovate.json
-!README.md
-!*.md
-!parse-xml-cli.ts
-!.adr-dir
-!.bazelrc
-!*.bzl
-!*.bats
-!*.sh
+# Bazel build outputs
+bazel-*
+/bazel-out/
+
+# Go build outputs
+*.test
+*.out
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE/Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.log
+.cache/
+
+# Test artifacts
+test/data/
+*.bats.tmp

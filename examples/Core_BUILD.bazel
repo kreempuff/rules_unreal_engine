@@ -1,0 +1,108 @@
+"""Example BUILD.bazel for Unreal Engine Core module.
+
+This demonstrates how to replace Core.Build.cs with Bazel rules.
+
+Original: Engine/Source/Runtime/Core/Core.Build.cs
+Target: Engine/Source/Runtime/Core/BUILD.bazel
+"""
+
+load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
+
+ue_module(
+    name = "Core",
+    module_type = "Runtime",
+
+    # Sources auto-discovered from Private/**/*.cpp
+    # Headers auto-discovered from Public/**/*.h
+
+    # Public dependencies (required by Core's public headers)
+    public_deps = [
+        "//Engine/Source/Runtime/TraceLog",
+        "//Engine/Source/Runtime/AtomicQueue",
+        "//Engine/Source/ThirdParty/GuidelinesSupportLibrary",
+    ],
+
+    # Private dependencies (implementation only)
+    private_deps = [
+        "//Engine/Source/Runtime/BuildSettings",
+        "//Engine/Source/Runtime/AutoRTFM",
+        "//Engine/Source/ThirdParty/BLAKE3",
+        "//Engine/Source/ThirdParty/OodleDataCompression",
+        "//Engine/Source/ThirdParty/xxhash",
+    ] + select({
+        "@platforms//os:windows": [
+            "//Engine/Source/ThirdParty/mimalloc",
+            "//Engine/Source/ThirdParty/libpas",
+        ],
+        "@platforms//os:macos": [
+            "//Engine/Source/ThirdParty/mimalloc",
+            "//Engine/Source/ThirdParty/IntelTBB",
+            "//Engine/Source/ThirdParty/PLCrashReporter",
+        ],
+        "@platforms//os:linux": [
+            "//Engine/Source/ThirdParty/mimalloc",
+            "//Engine/Source/ThirdParty/jemalloc",
+        ],
+        "//conditions:default": [],
+    }),
+
+    # Preprocessor definitions
+    defines = [
+        "UE_ENABLE_ICU=1",
+    ] + select({
+        "//build:editor": ["WITH_EDITOR=1"],
+        "//conditions:default": ["WITH_EDITOR=0"],
+    }) + select({
+        "@platforms//os:windows": [
+            "PLATFORM_BUILDS_LIBPAS=1",
+            "PLATFORM_BUILDS_MIMALLOC=1",
+            "USE_BUNDLED_DBGHELP=1",
+            "YIELD_BETWEEN_TASKS=1",
+        ],
+        "@platforms//os:macos": [
+            "PLATFORM_BUILDS_MIMALLOC=1",
+        ],
+        "//conditions:default": [],
+    }),
+
+    # Platform-specific frameworks (Apple)
+    frameworks = select({
+        "@platforms//os:macos": [
+            "-framework Cocoa",
+            "-framework Carbon",
+            "-framework IOKit",
+            "-framework Security",
+            "-framework UniformTypeIdentifiers",
+            "-framework Network",
+            "-framework ScreenCaptureKit",
+            "-framework SystemConfiguration",
+        ],
+        "@platforms//os:ios": [
+            "-framework UIKit",
+            "-framework Foundation",
+            "-framework AudioToolbox",
+            "-framework AVFoundation",
+            "-framework GameKit",
+            "-framework CoreVideo",
+            "-framework CoreMedia",
+            "-framework CoreGraphics",
+            "-framework GameController",
+            "-framework SystemConfiguration",
+        ],
+        "//conditions:default": [],
+    }),
+
+    # System libraries
+    linkopts = select({
+        "@platforms//os:linux": [
+            "-ldl",  # dlopen()
+            "-lpthread",
+        ],
+        "@platforms//os:windows": [
+            # Windows system libs linked via additional_libs
+        ],
+        "//conditions:default": [],
+    }),
+
+    visibility = ["//visibility:public"],
+)

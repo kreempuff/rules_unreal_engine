@@ -1,0 +1,5 @@
+# Bazel rules for Unreal Engine
+
+exports_files([
+    "module.bzl",
+])

@@ -1,0 +1,39 @@
+"""Test for ue_module rule"""
+
+load("//bzl:module.bzl", "ue_module")
+
+# Simple module with no dependencies
+ue_module(
+    name = "SimpleModule",
+    module_type = "Runtime",
+    srcs = ["Simple.cpp"],
+    hdrs = ["Simple.h"],
+    visibility = ["//visibility:public"],
+)
+
+# Module with dependencies
+ue_module(
+    name = "DependentModule",
+    module_type = "Runtime",
+    srcs = ["Dependent.cpp"],
+    hdrs = ["Dependent.h"],
+    public_deps = [":SimpleModule"],
+    defines = ["WITH_TEST=1"],
+)
+
+# Module with platform conditionals
+ue_module(
+    name = "PlatformModule",
+    module_type = "Runtime",
+    srcs = ["Platform.cpp"],
+    hdrs = ["Platform.h"],
+    defines = select({
+        "@platforms//os:macos": ["PLATFORM_MAC=1"],
+        "@platforms//os:linux": ["PLATFORM_LINUX=1"],
+        "//conditions:default": ["PLATFORM_UNKNOWN=1"],
+    }),
+    linkopts = select({
+        "@platforms//os:macos": ["-framework Foundation"],
+        "//conditions:default": [],
+    }),
+)
