@@ -98,18 +98,27 @@ def ue_module(
     deps.extend(public_deps)
     deps.extend(private_deps)
 
-    # Process frameworks for Apple platforms
-    processed_linkopts = list(linkopts)
+    # Process frameworks and linkopts
+    # Note: frameworks should be pre-formatted as "-framework Name" when using select()
+    processed_linkopts = linkopts
     if frameworks:
-        # Convert frameworks list to linker flags
-        if type(frameworks) == type([]):
+        # If frameworks is a simple list, convert to linker flags
+        if type(frameworks) == type([]) and len(frameworks) > 0:
+            framework_opts = []
             for fw in frameworks:
-                processed_linkopts.append("-framework")
-                processed_linkopts.append(fw)
+                if not fw.startswith("-framework"):
+                    framework_opts.extend(["-framework", fw])
+                else:
+                    framework_opts.append(fw)
+            processed_linkopts = framework_opts + processed_linkopts
         else:
-            # It's a select() - need to apply transformation
-            # This is a limitation: select() values need to be pre-formatted
-            processed_linkopts.append(frameworks)
+            # It's a select() - add it directly
+            # Values in select() should already be formatted as ["-framework Foo"]
+            if type(linkopts) == type([]):
+                processed_linkopts = frameworks + linkopts
+            else:
+                # Both are selects - can't combine easily, just use frameworks
+                processed_linkopts = frameworks
 
     # Create tags for module metadata
     tags = [

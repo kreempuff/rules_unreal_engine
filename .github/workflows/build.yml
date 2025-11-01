@@ -14,12 +14,32 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
-      - run: |
-          mkdir -p ~/.cache/bazel
+
+      - name: Install BATS
+        run: |
+          if [ "${{ matrix.os }}" = "ubuntu-22.04" ]; then
+            sudo apt-get update && sudo apt-get install -y bats
+          else
+            brew install bats-core
+          fi
+
+      - name: Setup Bazel cache
+        run: mkdir -p ~/.cache/bazel
+
       - uses: actions/cache@v4
         with:
           path: ~/.cache/bazel
           key: ${{ runner.os }}-bazel-${{ hashFiles('./MODULE.bazel', './MODULE.bazel.lock', '**/BUILD', '**/BUILD.bzl', '**/*.bzl', '.bazelrc') }}
           restore-keys: |
             ${{ runner.os }}-bazel-
-      - run: bazel test --config ci //:unreal_target_test
+
+      - name: Run Bazel tests
+        run: bazel test --config ci //:unreal_target_test //pkg/gitDeps:gitDeps_test
+
+      - name: Build rules_unreal_engine binary
+        run: bazel build //:rules_unreal_engine
+
+      - name: Run BATS integration tests
+        run: |
+          bats test/gitdeps.bats
+          bats test/ue_module.bats
