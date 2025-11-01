@@ -73,6 +73,7 @@ if [ ! -f "$MODULE_BAZEL" ]; then
 module(name = "unreal_engine", version = "5.5.0")
 
 bazel_dep(name = "platforms", version = "1.0.0")
+bazel_dep(name = "rules_cc", version = "0.2.13")
 bazel_dep(name = "rules_unreal_engine", version = "0.1.0")
 
 # For local development, uncomment and adjust path:
