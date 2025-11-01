@@ -104,7 +104,8 @@ def ue_module(
         "-fno-exceptions",                 # Exceptions OFF (UE default)
         "-fno-rtti",                       # RTTI OFF (UE default)
         "-Wall",                           # Enable all warnings
-        "-fdiagnostics-absolute-paths",    # Full paths in errors
+        # Note: -fdiagnostics-absolute-paths is Clang-only, not supported by GCC
+        # TODO: Add conditionally for Clang toolchain
     ]
 
     # UE build configuration defines (required by Core/Misc/Build.h)
