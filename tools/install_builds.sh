@@ -4,6 +4,9 @@
 # Usage:
 #   ./tools/install_builds.sh /path/to/UnrealEngine
 #   ./tools/install_builds.sh /path/to/UnrealEngine --dry-run
+#
+# Environment variables:
+#   LOCAL_DEV=1  - Add local_path_override to MODULE.bazel (for testing)
 
 set -e
 
@@ -69,17 +72,26 @@ if [ ! -f "$MODULE_BAZEL" ]; then
         echo "[DRY RUN] Would create: $MODULE_BAZEL"
     else
         echo "Creating: $MODULE_BAZEL"
-        cat > "$MODULE_BAZEL" << 'EOF'
+
+        # Calculate relative path if LOCAL_DEV=1
+        LOCAL_OVERRIDE=""
+        if [ -n "$LOCAL_DEV" ]; then
+            # Calculate relative path from UE to rules_unreal_engine
+            RELATIVE_PATH=$(python3 -c "import os.path; print(os.path.relpath('$SCRIPT_DIR', '$UE_PATH'))" 2>/dev/null || echo "../rules_unreal_engine")
+            LOCAL_OVERRIDE="
+local_path_override(
+    module_name = \"rules_unreal_engine\",
+    path = \"$RELATIVE_PATH\",
+)"
+        fi
+
+        cat > "$MODULE_BAZEL" << EOF
 module(name = "unreal_engine", version = "5.5.0")
 
 bazel_dep(name = "platforms", version = "1.0.0")
+bazel_dep(name = "rules_cc", version = "0.2.13")
 bazel_dep(name = "rules_unreal_engine", version = "0.1.0")
-
-# For local development, uncomment and adjust path:
-# local_path_override(
-#     module_name = "rules_unreal_engine",
-#     path = "../rules_unreal_engine",
-# )
+$LOCAL_OVERRIDE
 EOF
     fi
 else

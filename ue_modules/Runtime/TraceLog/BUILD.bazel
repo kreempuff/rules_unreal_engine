@@ -14,8 +14,12 @@ ue_module(
 
     # From TraceLog.Build.cs: PublicIncludePathModuleNames.Add("Core")
     # TraceLog needs Core's headers (HAL/Platform.h) but doesn't link against Core
-    # This creates a circular dependency: Core → TraceLog → Core (headers only)
-    public_deps = ["//Engine/Source/Runtime/Core"],
+    #
+    # Circular dependency solution:
+    # - Depend on Core_headers (headers-only target)
+    # - Core (implementation) depends on TraceLog
+    # - No cycle: TraceLog → Core_headers, Core → TraceLog
+    public_deps = ["//Engine/Source/Runtime/Core:Core_headers"],
 
     # From TraceLog.Build.cs
     local_defines = [

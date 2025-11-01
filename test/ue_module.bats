@@ -16,14 +16,20 @@ setup_file() {
 
     # For E2E tests: Clone UE once if RUN_SLOW_TESTS=1
     if [ -n "$RUN_SLOW_TESTS" ]; then
-        export UE_CLONE_DIR="$BATS_TEST_TMPDIR/UnrealEngine"
+        # Use persistent .test_ue/ directory (gitignored)
+        export UE_CLONE_DIR="$PROJECT_ROOT/.test_ue/UnrealEngine"
         export UE_GIT_URL="${UE_GIT_URL:-https://github.com/EpicGames/UnrealEngine.git}"
         export UE_BRANCH="${UE_BRANCH:-5.5}"
 
-        if [ ! -d "$UE_CLONE_DIR" ]; then
-            echo "# Cloning UE once for all E2E tests (this takes 5-10 minutes)..." >&3
+        if [ ! -d "$UE_CLONE_DIR/Engine/Source" ]; then
+            echo "# Cloning UE to persistent test directory (5-10 minutes)..." >&3
+            echo "# Location: $UE_CLONE_DIR" >&3
             echo "# URL: $UE_GIT_URL" >&3
             echo "# Branch: $UE_BRANCH" >&3
+            echo "# (Clone persists in .test_ue/ - delete to re-clone)" >&3
+
+            rm -rf "$UE_CLONE_DIR"
+            mkdir -p "$(dirname "$UE_CLONE_DIR")"
 
             git clone \
                 --depth 1 \
@@ -32,30 +38,31 @@ setup_file() {
                 "$UE_GIT_URL" \
                 "$UE_CLONE_DIR" || {
                 # Clone failed - tests will skip
+                echo "# Clone failed" >&3
                 rm -rf "$UE_CLONE_DIR"
                 export UE_CLONE_FAILED=1
             }
+        else
+            echo "# Using existing UE clone at: $UE_CLONE_DIR" >&3
         fi
     fi
 }
 
 teardown_file() {
-    # Cleanup UE clone after all tests
-    if [ -n "$UE_CLONE_DIR" ] && [ -d "$UE_CLONE_DIR" ]; then
-        rm -rf "$UE_CLONE_DIR"
-    fi
+    # Don't delete - clone persists in .test_ue/ for faster re-runs
+    # To clean: rm -rf .test_ue/
+    :
 }
 
 setup() {
-    cd "$PROJECT_ROOT"
-
     # Reset UE clone to clean state before each E2E test
     if [ -n "$UE_CLONE_DIR" ] && [ -d "$UE_CLONE_DIR" ]; then
         cd "$UE_CLONE_DIR"
         git reset --hard HEAD >/dev/null 2>&1
         git clean -fdx >/dev/null 2>&1
-        cd "$PROJECT_ROOT"
     fi
+
+    cd "$PROJECT_ROOT"
 }
 
 @test "ue_module: Simple module builds successfully" {
@@ -233,43 +240,31 @@ EOF
 }
 
 @test "ue_module: E2E - Build AtomicQueue from real UE (header-only)" {
-    # Skip unless RUN_SLOW_TESTS=1
     if [ -z "$RUN_SLOW_TESTS" ]; then
-        skip "Slow test - set RUN_SLOW_TESTS=1 to run (clones UE once)"
+        skip "Slow test - set RUN_SLOW_TESTS=1"
     fi
 
-    # Skip if clone failed
-    if [ -n "$UE_CLONE_FAILED" ]; then
-        skip "UE clone failed (requires Epic GitHub access)"
+    if [ ! -d "$UE_CLONE_DIR/Engine/Source" ]; then
+        skip "UE clone not available"
     fi
 
-    # Use shared UE clone (setup_file cloned it once)
     cd "$UE_CLONE_DIR"
 
-    # Add rules_unreal_engine dependency
-    cat > MODULE.bazel << EOF
-module(name = "unreal_engine", version = "5.5.0")
+    # Install BUILD files and MODULE.bazel with local_path_override
+    run env LOCAL_DEV=1 "$PROJECT_ROOT/tools/install_builds.sh" .
 
-bazel_dep(name = "rules_unreal_engine")
-local_path_override(
-    module_name = "rules_unreal_engine",
-    path = "$PROJECT_ROOT",
-)
-EOF
+    echo "Install: $output"
+    [ "$status" -eq 0 ]
 
-    # Install BUILD files from ue_modules/
-    cp "$PROJECT_ROOT/ue_modules/ThirdParty/AtomicQueue/BUILD.bazel" \
-       Engine/Source/ThirdParty/AtomicQueue/BUILD.bazel
+    # Verify MODULE.bazel has local_path_override
+    grep -q "local_path_override" MODULE.bazel
 
-    # Build the module (header-only, should be fast)
+    # Build AtomicQueue
     run bazel build //Engine/Source/ThirdParty/AtomicQueue:AtomicQueue
 
-    echo "Output: $output"
-
-    # Return to project root (teardown will clean UE_CLONE_DIR)
+    echo "Build: $output"
     cd "$PROJECT_ROOT"
 
-    # Assert build succeeded
     [ "$status" -eq 0 ]
     [[ "$output" =~ "Build completed successfully" ]]
 }
