@@ -1,9 +1,10 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "cmd",
     srcs = [
         "exit.go",
+        "extract.go",
         "gitDeps.go",
         "printUrls.go",
         "root.go",

@@ -8,57 +8,56 @@ import (
 	"github.com/spf13/cobra"
 	"kreempuff.dev/rules-unreal-engine/pkg/gitDeps"
 	"net/http"
-	"os"
 )
 
 var gitDepsCmd = &cobra.Command{
 	Use:   "gitDeps",
-	Short: "Parses Unreal dependencies and performs actions on them",
-	Long:  `Parses Unreal dependencies and performs actions on them.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		logrus.SetLevel(logrus.DebugLevel)
+	Short: "Downloads and extracts Unreal Engine dependencies",
+	Long: `Downloads and extracts all dependency packs from a .ue4dependencies manifest file.
 
-		input, err := cmd.Flags().GetString(gitDeps.InputFlag)
-		if err != nil {
-			logrus.Error(err)
-			logrus.Exit(UnknownExitCode)
+This command replaces Epic's Setup.sh script with a faster, more reliable implementation.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		// Get flags
+		input, _ := cmd.Flags().GetString("input")
+		outputDir, _ := cmd.Flags().GetString("output-dir")
+		verify, _ := cmd.Flags().GetBool("verify")
+		verbose, _ := cmd.Flags().GetBool("verbose")
+
+		// Set log level
+		if verbose {
+			logrus.SetLevel(logrus.DebugLevel)
+		} else {
+			logrus.SetLevel(logrus.InfoLevel)
 		}
 
+		// Parse manifest
+		logrus.Infof("parsing manifest from: %s", input)
 		manifest, err := gitDeps.GetManifestFromInput(input)
 		if err != nil {
-			logrus.Errorf("error decoding dependency file: %s", err)
+			logrus.Errorf("failed to parse manifest: %s", err)
 			logrus.Exit(UnknownExitCode)
 		}
 
-		logrus.Infof("url: %s/%s/%s, compressed size: %d", manifest.BaseUrl, manifest.Packs[0].RemotePath, manifest.Packs[0].Hash, manifest.Packs[0].CompressedSize)
+		logrus.Infof("found %d packs to download", len(manifest.Packs))
+		logrus.Infof("base URL: %s", manifest.BaseUrl)
 
-		filename := ".tgitconfig"
-		p := gitDeps.GetPackfromFileName(filename, *manifest)
-		if p == nil {
-			logrus.Errorf("pack not found for %s", filename)
-		} else {
-			logrus.Infof("pack for %s is %s", filename, p.RemotePath)
-		}
-
-		err = gitDeps.DownloadPack(os.Stdout, *http.DefaultClient, p, *manifest)
+		// Download and extract all packs
+		err = gitDeps.DownloadAllPacks(*http.DefaultClient, *manifest, outputDir, verify)
 		if err != nil {
-			logrus.Error("failed to download pack", err)
-			logrus.Debugf("pack: %s failed to download", p.Hash)
+			logrus.Errorf("failed to download packs: %s", err)
+			logrus.Exit(UnknownExitCode)
 		}
+
+		logrus.Info("all dependencies downloaded and extracted successfully")
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(gitDepsCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// gitDepsCmd.PersistentFlags().String("foo", "", "A help for foo")
-	gitDepsCmd.PersistentFlags().StringP("input", "i", ".", "The dependency file or directory to parse dependencies from")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	//gitDepsCmd.Flags().StringP("input", "i", ".", "The dependency file or directory to parse dependencies from")
+	// Define flags
+	gitDepsCmd.Flags().StringP("input", "i", ".", "Path to .ue4dependencies file or directory containing it")
+	gitDepsCmd.Flags().StringP("output-dir", "o", ".", "Directory to extract dependencies to")
+	gitDepsCmd.Flags().BoolP("verify", "v", true, "Verify SHA1 checksums of downloaded packs")
+	gitDepsCmd.Flags().Bool("verbose", false, "Enable verbose logging")
 }
