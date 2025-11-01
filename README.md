@@ -29,9 +29,12 @@ TODO
   - [x] Configure Unreal Engine (mimic `Setup.(bat|sh)` functionality)
     - [x] Download git dependencies
     - [x] Unpack git dependencies
-  - [ ] Build a module of Unreal Engine in Bazel
-    - [ ] Build an Unreal module with no dependencies
-    - [ ] Link Unreal Engine modules together
-  - [ ] Build Unreal Editor in Bazel
-- [ ] Build and Package Unreal Engine projects in Bazel
+  - [ ] Build a module of Unreal Engine in Bazel *(Phase 1.2)*
+    - [ ] Design and implement `ue_module` Bazel rule
+    - [ ] Write BUILD.bazel for Core module
+    - [ ] Build Core module with Bazel
+    - [ ] Build CoreUObject module (depends on Core)
+  - [ ] Build Unreal Editor in Bazel *(Phase 1.3+)*
+- [ ] Build and Package Unreal Engine projects in Bazel *(Phase 2)*
+  - [ ] Design and implement `ue_project` Bazel rule
   - [ ] Generate BUILD files for Unreal Engine plugins
