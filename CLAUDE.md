@@ -356,8 +356,10 @@ When testing features that interact with Unreal Engine source code:
 - ✅ Fix include path issues (added Private/ and Internal/ to includes)
 - ✅ Fix missing preprocessor defines (all UE_BUILD_*, WITH_*, platform defines)
 - ✅ Try building Core module (compiles, but needs dependencies)
-- 🔲 Write BUILD.bazel for TraceLog module (Core dependency)
-- 🔲 Write BUILD.bazel for other Core dependencies (BuildSettings, AtomicQueue, etc.)
+- ✅ Resolve Core/TraceLog circular dependency (split Core into Core_headers + Core)
+- ✅ TraceLog now compiles successfully!
+- 🔲 Add LZ4 third-party dependency to TraceLog
+- 🔲 Write BUILD.bazel for other Core dependencies (BuildSettings, GuidelinesSupportLibrary, etc.)
 - 🔲 Get Core to fully compile
 - 🔲 Expected blocker: UHT-generated code (*.generated.h)
 
