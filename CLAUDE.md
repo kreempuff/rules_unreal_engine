@@ -344,9 +344,8 @@ When testing features that interact with Unreal Engine source code:
 **Compiler Flags:**
 - ✅ Extract flags from ClangToolChain.cs
 - ✅ Document in `docs/UE_COMPILER_FLAGS.md`
-- 🔲 Create Bazel `cc_toolchain_config` with UE defaults
-- 🔲 Update `ue_module` to use UE compiler flags
-- 🔲 Test: Build AtomicQueue with UE flags
+- ✅ Add UE default flags to `ue_module` rule (-std=c++20, -fno-exceptions, -fno-rtti, etc.)
+- ✅ Test flags with compile-time validation (TestUEFlags.cpp)
 - 🔲 Validate: Compare Bazel vs UBT output (symbols, binary format)
 
 **Build Core Module:**
