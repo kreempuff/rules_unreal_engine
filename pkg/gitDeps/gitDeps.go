@@ -8,12 +8,14 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io"
 	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 // ParseDir walks through a filesystem and finds all .ue4dependencies files,
@@ -227,9 +229,12 @@ func ExtractUEPack(packData []byte, blobs []Blob, files []File, targetDir string
 		// Construct target path
 		targetPath := filepath.Join(targetDir, file.Name)
 
-		// Prevent path traversal attacks
-		if !filepath.HasPrefix(filepath.Clean(targetPath), filepath.Clean(targetDir)) {
-			return fmt.Errorf("illegal file path: %s", file.Name)
+		// Prevent path traversal attacks using filepath.Rel
+		cleanTargetDir := filepath.Clean(targetDir)
+		cleanTargetPath := filepath.Clean(targetPath)
+		relPath, err := filepath.Rel(cleanTargetDir, cleanTargetPath)
+		if err != nil || strings.HasPrefix(relPath, ".."+string(os.PathSeparator)) || strings.HasPrefix(relPath, "..") && len(relPath) == 2 {
+			return fmt.Errorf("illegal file path (path traversal detected): %s", file.Name)
 		}
 
 		l.Debugf("extracting: %s (%d bytes)", file.Name, blob.Size)

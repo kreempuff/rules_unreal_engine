@@ -103,7 +103,9 @@ The test suite creates minimal test fixtures automatically:
 - Used for unit testing without network access
 
 **Real UE Manifest (optional):**
-- Located at: `/tmp/ue-e2e-test/Engine/Build/Commit.gitdeps.xml`
+- Located at:
+  - Unix-like: `/tmp/ue-e2e-test/Engine/Build/Commit.gitdeps.xml`
+  - Windows: `C:\Temp\ue-e2e-test\Engine\Build\Commit.gitdeps.xml`
 - 30MB XML
 - 9,758 packs
 - 23,916 files

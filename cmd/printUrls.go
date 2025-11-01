@@ -37,7 +37,7 @@ var printUrlsCmd = &cobra.Command{
 		out := ""
 		switch output {
 		case "json":
-			out = formatUrlsAsJson(urls)
+			out = formatUrlsAsJSON(urls)
 		case "bazel":
 			out = formatUrlsAsBazel(urls)
 		}
@@ -55,8 +55,8 @@ func formatUrlsAsBazel(urls []string) string {
 	return output
 }
 
-// formatUrlsAsJson formats the urls as a JSON array of strings
-func formatUrlsAsJson(urls []string) string {
+// formatUrlsAsJSON formats the urls as a JSON array of strings
+func formatUrlsAsJSON(urls []string) string {
 	var output string
 	output += "["
 	for i, url := range urls {
