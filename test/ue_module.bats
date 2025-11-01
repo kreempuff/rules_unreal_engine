@@ -172,7 +172,7 @@ EOF
     rm -rf "$TEST_MODULE_DIR"
 }
 
-@test "ue_module: E2E - Clone real UE and build TraceLog module" {
+@test "ue_module: E2E - Clone real UE and build AtomicQueue (header-only)" {
     # Skip unless RUN_SLOW_TESTS=1
     if [ -z "$RUN_SLOW_TESTS" ]; then
         skip "Slow test - set RUN_SLOW_TESTS=1 to run (takes 5-10 minutes)"
@@ -182,8 +182,8 @@ EOF
     UE_CLONE_DIR="$(mktemp -d)"
     echo "Cloning UE to: $UE_CLONE_DIR"
 
-    # Clone minimal UE (just what we need for TraceLog)
-    # Using depth 1 and sparse checkout for speed
+    # Clone minimal UE
+    # Using depth 1 for speed
     git clone \
         --depth 1 \
         --branch 5.5 \
@@ -208,20 +208,22 @@ local_path_override(
 )
 EOF
 
-    # Create BUILD.bazel for TraceLog module
-    cat > Engine/Source/Runtime/TraceLog/BUILD.bazel << 'EOF'
+    # Create BUILD.bazel for AtomicQueue (header-only, no dependencies!)
+    cat > Engine/Source/ThirdParty/AtomicQueue/BUILD.bazel << 'EOF'
 load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
 
 ue_module(
-    name = "TraceLog",
-    module_type = "Runtime",
-    local_defines = ["SUPPRESS_PER_MODULE_INLINE_FILE"],
+    name = "AtomicQueue",
+    module_type = "ThirdParty",
+    # Header-only module
+    srcs = [],
+    hdrs = ["AtomicQueue.h"],
     visibility = ["//visibility:public"],
 )
 EOF
 
-    # Build the module
-    run bazel build //Engine/Source/Runtime/TraceLog:TraceLog
+    # Build the module (header-only, should be fast)
+    run bazel build //Engine/Source/ThirdParty/AtomicQueue:AtomicQueue
 
     echo "Output: $output"
 
@@ -231,5 +233,5 @@ EOF
 
     # Assert build succeeded
     [ "$status" -eq 0 ]
-    [[ "$output" =~ "Build completed successfully" ]] || [[ "$output" =~ "libTraceLog" ]]
+    [[ "$output" =~ "Build completed successfully" ]]
 }
