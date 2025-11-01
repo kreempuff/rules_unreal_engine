@@ -6,7 +6,9 @@
 !internal
 !parse-xml
 !pkg
+!test
 !BUILD
+!BUILD.bazel
 !MODULE.bazel
 !MODULE.bazel.lock
 !*.go
@@ -14,7 +16,10 @@
 !.bazel_fix_commands.json
 !renovate.json
 !README.md
+!*.md
 !parse-xml-cli.ts
 !.adr-dir
 !.bazelrc
 !*.bzl
+!*.bats
+!*.sh
