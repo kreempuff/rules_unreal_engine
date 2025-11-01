@@ -60,6 +60,7 @@ setup() {
         cd "$UE_CLONE_DIR"
         git reset --hard HEAD >/dev/null 2>&1
         git clean -fdx >/dev/null 2>&1
+        bash ./tools/install_builds.sh "$UE_CLONE_DIR"
     fi
 
     cd "$PROJECT_ROOT"
@@ -240,43 +241,31 @@ EOF
 }
 
 @test "ue_module: E2E - Build AtomicQueue from real UE (header-only)" {
-    # Skip unless RUN_SLOW_TESTS=1
     if [ -z "$RUN_SLOW_TESTS" ]; then
-        skip "Slow test - set RUN_SLOW_TESTS=1 to run (clones UE once)"
+        skip "Slow test - set RUN_SLOW_TESTS=1"
     fi
 
-    # Skip if clone failed
-    if [ -n "$UE_CLONE_FAILED" ]; then
-        skip "UE clone failed (requires Epic GitHub access)"
+    if [ ! -d "$UE_CLONE_DIR/Engine/Source" ]; then
+        skip "UE clone not available"
     fi
 
-    # Use shared UE clone (setup_file cloned it once)
     cd "$UE_CLONE_DIR"
 
-    # Add rules_unreal_engine dependency
-    cat > MODULE.bazel << EOF
-module(name = "unreal_engine", version = "5.5.0")
+    # Install BUILD files and MODULE.bazel with local_path_override
+    run env LOCAL_DEV=1 "$PROJECT_ROOT/tools/install_builds.sh" .
 
-bazel_dep(name = "rules_unreal_engine")
-local_path_override(
-    module_name = "rules_unreal_engine",
-    path = "$PROJECT_ROOT",
-)
-EOF
+    echo "Install: $output"
+    [ "$status" -eq 0 ]
 
-    # Install BUILD files from ue_modules/
-    cp "$PROJECT_ROOT/ue_modules/ThirdParty/AtomicQueue/BUILD.bazel" \
-       Engine/Source/ThirdParty/AtomicQueue/BUILD.bazel
+    # Verify MODULE.bazel has local_path_override
+    grep -q "local_path_override" MODULE.bazel
 
-    # Build the module (header-only, should be fast)
+    # Build AtomicQueue
     run bazel build //Engine/Source/ThirdParty/AtomicQueue:AtomicQueue
 
-    echo "Output: $output"
-
-    # Return to project root (teardown will clean UE_CLONE_DIR)
+    echo "Build: $output"
     cd "$PROJECT_ROOT"
 
-    # Assert build succeeded
     [ "$status" -eq 0 ]
     [[ "$output" =~ "Build completed successfully" ]]
 }

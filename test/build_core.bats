@@ -77,8 +77,11 @@ setup() {
 
     cd "$UE_CLONE_DIR"
 
-    # Install BUILD files using install script
-    "$PROJECT_ROOT/tools/install_builds.sh" .
+    # Install BUILD files and MODULE.bazel with local_path_override
+    run env LOCAL_DEV=1 "$PROJECT_ROOT/tools/install_builds.sh" .
+
+    echo "Install: $output"
+    [ "$status" -eq 0 ]
 
     # Try to build Core
     run bazel build //Engine/Source/Runtime/Core:Core

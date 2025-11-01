@@ -25,3 +25,6 @@ Thumbs.db
 # Test artifacts
 test/data/
 *.bats.tmp
+
+# Test UE clone (persistent for E2E tests)
+.test_ue/UnrealEngine/
