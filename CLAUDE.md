@@ -322,10 +322,67 @@ When testing features that interact with Unreal Engine source code:
 
 ### Current Priorities
 
-1. ✅ ~~Complete Phase 1.1: Setup.sh replacement (gitDeps.go)~~ **DONE**
-2. **Active:** Phase 1.2: `ue_module` Bazel rule (replaces .Build.cs)
-3. Test building Core and CoreUObject modules with Bazel
+1. ✅ ~~Phase 1.1: Setup.sh replacement (gitDeps.go)~~ **DONE** (2025-10-30)
+2. ✅ ~~Phase 1.2: `ue_module` Bazel rule (replaces .Build.cs)~~ **DONE** (2025-11-01)
+   - ✅ Successfully built real UE module (AtomicQueue) with Bazel!
+   - ✅ 13 BATS tests passing (12 fast + 1 E2E)
+3. **Active:** Phase 1.3: Compiler Toolchain Integration
+   - Week 1-2: Extract and implement UE compiler flags
+   - Week 3-4: Build Core module incrementally
+   - Week 5-8: UnrealHeaderTool (UHT) integration
 4. Document architecture decisions in `docs/decisions/`
+
+---
+
+## Phase 1.3: Compiler Toolchain Integration (IN PROGRESS)
+
+**Branch:** `feat/phase1.3-compiler-toolchain`
+**Started:** 2025-11-01
+
+### Checklist
+
+**Compiler Flags:**
+- ✅ Extract flags from ClangToolChain.cs
+- ✅ Document in `docs/UE_COMPILER_FLAGS.md`
+- ✅ Add UE default compiler flags (-std=c++20, -fno-exceptions, -fno-rtti, -Wall)
+- ✅ Add UE build configuration defines (UE_BUILD_*, WITH_*, IS_*)
+- ✅ Add platform defines (UBT_COMPILED_PLATFORM, PLATFORM_MAC, etc.)
+- ✅ Add module API macros (CORE_API, ENGINE_API, auto-generated)
+- ✅ Test flags with compile-time validation (TestUEFlags.cpp)
+- 🔲 Validate: Compare Bazel vs UBT output (symbols, binary format)
+
+**Build Core Module:**
+- ✅ Create BUILD.bazel for Core module
+- ✅ Fix include path issues (added Private/ and Internal/ to includes)
+- ✅ Fix missing preprocessor defines (all UE_BUILD_*, WITH_*, platform defines)
+- ✅ Try building Core module (compiles, but needs dependencies)
+- 🔲 Write BUILD.bazel for TraceLog module (Core dependency)
+- 🔲 Write BUILD.bazel for other Core dependencies (BuildSettings, AtomicQueue, etc.)
+- 🔲 Get Core to fully compile
+- 🔲 Expected blocker: UHT-generated code (*.generated.h)
+
+**UnrealHeaderTool (UHT) Integration:**
+- 🔲 Build UHT as Bazel target
+- 🔲 Study UHT command-line API
+- 🔲 Create genrule for code generation
+- 🔲 Generate `.generated.h` and `.generated.cpp` files
+- 🔲 Integrate UHT into `ue_module` build flow
+- 🔲 Build CoreUObject (heavily uses UHT reflection)
+
+### Key Findings
+
+**Compiler Settings (from UBT source):**
+- C++ Standard: C++20
+- Exceptions: OFF (`-fno-exceptions`)
+- RTTI: OFF (`-fno-rtti`)
+- Warnings: `-Wall -Werror`
+- Platform defines: `PLATFORM_MAC=1`, `UE_BUILD_DEVELOPMENT=1`
+
+### References
+
+- `docs/UE_COMPILER_FLAGS.md` - Complete flag documentation
+- `ClangToolChain.cs:380-1472` - UBT Clang implementation
+- `test/ue_module.bats` - E2E test template
 
 ---
 

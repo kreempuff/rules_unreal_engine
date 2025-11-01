@@ -37,3 +37,12 @@ ue_module(
         "//conditions:default": [],
     }),
 )
+
+# Module that validates UE compiler flags are applied
+ue_module(
+    name = "UEFlagsTest",
+    module_type = "Runtime",
+    srcs = ["TestUEFlags.cpp"],
+    hdrs = [],
+    visibility = ["//visibility:public"],
+)

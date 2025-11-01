@@ -128,6 +128,17 @@ setup() {
     [[ "$output" =~ "includes" ]]
 }
 
+@test "ue_module: UE compiler flags are applied (C++20, no exceptions, no RTTI)" {
+    # This test validates that UE default flags are working
+    # TestUEFlags.cpp has #error directives that fail if flags are wrong
+    run bazel build //test/module_rule_test:UEFlagsTest
+
+    echo "Output: $output"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "Build completed successfully" ]]
+    [[ "$output" =~ "libUEFlagsTest.a" ]]
+}
+
 @test "ue_module: Clean build from scratch" {
     # Clean first
     bazel clean
@@ -246,19 +257,9 @@ local_path_override(
 )
 EOF
 
-    # Create BUILD.bazel for AtomicQueue (header-only, no dependencies!)
-    cat > Engine/Source/ThirdParty/AtomicQueue/BUILD.bazel << 'EOF'
-load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
-
-ue_module(
-    name = "AtomicQueue",
-    module_type = "ThirdParty",
-    # Header-only module
-    srcs = [],
-    hdrs = ["AtomicQueue.h"],
-    visibility = ["//visibility:public"],
-)
-EOF
+    # Install BUILD files from ue_modules/
+    cp "$PROJECT_ROOT/ue_modules/ThirdParty/AtomicQueue/BUILD.bazel" \
+       Engine/Source/ThirdParty/AtomicQueue/BUILD.bazel
 
     # Build the module (header-only, should be fast)
     run bazel build //Engine/Source/ThirdParty/AtomicQueue:AtomicQueue

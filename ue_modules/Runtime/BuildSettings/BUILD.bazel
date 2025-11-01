@@ -1,0 +1,30 @@
+"""Unreal Engine BuildSettings module.
+
+Provides build-time configuration and version information.
+Contains ENGINE_VERSION, BUILD_VERSION, etc.
+
+Converted from: Engine/Source/Runtime/BuildSettings/BuildSettings.Build.cs
+"""
+
+load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
+
+ue_module(
+    name = "BuildSettings",
+    module_type = "Runtime",
+
+    # From BuildSettings.Build.cs: PrivateIncludePathModuleNames.Add("Core")
+    # Needs Core headers but doesn't link
+    public_deps = ["//Engine/Source/Runtime/Core"],
+
+    # From BuildSettings.Build.cs
+    local_defines = [
+        "SUPPRESS_PER_MODULE_INLINE_FILE",
+        # TODO: Add dynamic defines from BuildSettings.Build.cs:
+        # - ENGINE_VERSION_MAJOR/MINOR/HOTFIX
+        # - CURRENT_CHANGELIST
+        # - BRANCH_NAME
+        # - BUILD_VERSION
+    ],
+
+    visibility = ["//visibility:public"],
+)

@@ -1,0 +1,42 @@
+"""Unreal Engine Core module.
+
+Core is the foundation module for all of UE. It provides:
+- Platform abstraction (HAL)
+- Containers (TArray, TMap, etc.)
+- Math types (FVector, FMatrix, etc.)
+- Memory management
+- Threading primitives
+- File I/O
+
+Converted from: Engine/Source/Runtime/Core/Core.Build.cs
+"""
+
+load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
+
+ue_module(
+    name = "Core",
+    module_type = "Runtime",
+
+    # From Core.Build.cs: PublicDependencyModuleNames
+    public_deps = [
+        "//Engine/Source/Runtime/TraceLog",
+        # TODO: Add remaining dependencies from Core.Build.cs:
+        # - GuidelinesSupportLibrary
+        # - AtomicQueue
+    ],
+
+    # From Core.Build.cs: PrivateDependencyModuleNames
+    private_deps = [
+        # TODO: Add from Core.Build.cs:
+        # - BuildSettings
+        # - AutoRTFM
+        # - BLAKE3
+        # - OodleDataCompression
+        # - xxhash
+        # Platform-specific: mimalloc, IntelTBB, jemalloc, etc.
+    ],
+
+    # Sources and headers auto-discovered from Private/ and Public/
+
+    visibility = ["//visibility:public"],
+)

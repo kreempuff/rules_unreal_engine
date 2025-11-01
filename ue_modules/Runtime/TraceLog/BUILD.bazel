@@ -1,0 +1,26 @@
+"""Unreal Engine TraceLog module.
+
+TraceLog provides lightweight tracing and profiling infrastructure.
+Used by Core and other modules for runtime diagnostics.
+
+Converted from: Engine/Source/Runtime/TraceLog/TraceLog.Build.cs
+"""
+
+load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
+
+ue_module(
+    name = "TraceLog",
+    module_type = "Runtime",
+
+    # From TraceLog.Build.cs: PublicIncludePathModuleNames.Add("Core")
+    # TraceLog needs Core's headers (HAL/Platform.h) but doesn't link against Core
+    # This creates a circular dependency: Core → TraceLog → Core (headers only)
+    public_deps = ["//Engine/Source/Runtime/Core"],
+
+    # From TraceLog.Build.cs
+    local_defines = [
+        "SUPPRESS_PER_MODULE_INLINE_FILE",  # Doesn't use Core's operator new/delete
+    ],
+
+    visibility = ["//visibility:public"],
+)

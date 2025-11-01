@@ -17,6 +17,7 @@ def ue_module(
         system_includes = [],
         defines = [],
         local_defines = [],
+        copts = [],
         linkopts = [],
         frameworks = [],
         visibility = None,
@@ -45,6 +46,8 @@ def ue_module(
             Maps to: PublicDefinitions
         local_defines: Private preprocessor definitions
             Maps to: PrivateDefinitions
+        copts: Compiler options. UE defaults are added automatically.
+            Override with additional flags as needed.
         linkopts: Linker options and system libraries
             Maps to: PublicSystemLibraries, PublicAdditionalLibraries
         frameworks: Apple frameworks (Mac/iOS/tvOS/visionOS)
@@ -87,17 +90,80 @@ def ue_module(
                 "Public/**/*.h",
                 "Public/**/*.hpp",
                 "Public/**/*.inl",
+                "Internal/**/*.h",      # Internal headers (visible to internal modules)
+                "Internal/**/*.hpp",
+                "Private/**/*.h",       # Private headers (needed for includes)
+                "Private/**/*.hpp",
             ],
             allow_empty = True,
         )
+
+    # UE default compiler flags (from UBT ClangToolChain.cs)
+    ue_default_copts = [
+        "-std=c++20",                      # C++20 standard (UE default)
+        "-fno-exceptions",                 # Exceptions OFF (UE default)
+        "-fno-rtti",                       # RTTI OFF (UE default)
+        "-Wall",                           # Enable all warnings
+        # Note: -fdiagnostics-absolute-paths is Clang-only, not supported by GCC
+        # TODO: Add conditionally for Clang toolchain
+    ]
+
+    # UE build configuration defines (required by Core/Misc/Build.h)
+    # TODO: Make these configurable via Bazel config_setting
+    ue_build_defines = [
+        "UE_BUILD_DEVELOPMENT=1",         # Development build (default)
+        "UE_BUILD_DEBUG=0",
+        "UE_BUILD_TEST=0",
+        "UE_BUILD_SHIPPING=0",
+        "WITH_EDITOR=0",                  # Game build, not editor
+        "WITH_ENGINE=1",                  # Compiling with engine
+        "WITH_UNREAL_DEVELOPER_TOOLS=0",
+        "WITH_PLUGIN_SUPPORT=1",
+        "IS_MONOLITHIC=0",                # Modular build
+        "IS_PROGRAM=0",                   # Not a standalone program
+    ]
+
+    # Module API export macros (e.g., CORE_API, ENGINE_API)
+    # For static library builds, these are empty
+    # TODO: For DLL builds, use __declspec(dllexport/dllimport) on Windows
+    module_api_define = name.upper() + "_API="
+    ue_build_defines.append(module_api_define)
+
+    # UE platform-specific defines (required by Core/HAL/Platform.h)
+    ue_platform_defines = select({
+        "@platforms//os:macos": [
+            "UBT_COMPILED_PLATFORM=Mac",
+            "PLATFORM_MAC=1",
+            "PLATFORM_APPLE=1",
+        ],
+        "@platforms//os:linux": [
+            "UBT_COMPILED_PLATFORM=Linux",
+            "PLATFORM_LINUX=1",
+            "PLATFORM_UNIX=1",
+        ],
+        "@platforms//os:windows": [
+            "UBT_COMPILED_PLATFORM=Windows",
+            "PLATFORM_WINDOWS=1",
+            "PLATFORM_MICROSOFT=1",
+        ],
+        "//conditions:default": [],
+    })
+
+    # Combine user copts with UE defaults (user copts can override)
+    all_copts = ue_default_copts + copts
+
+    # Combine UE defines with user defines
+    # Order: UE build config → UE platform → user defines
+    all_defines = ue_build_defines + ue_platform_defines + defines
 
     # Build include paths
     includes = []
     if public_includes:
         includes.extend(public_includes)
     else:
-        # Default: Public directory
-        includes.append("Public")
+        # Default: Public, Internal, and Private directories
+        # UE modules expect to include from these paths
+        includes.extend(["Public", "Internal", "Private"])
 
     # Collect all dependencies
     deps = []
@@ -139,8 +205,9 @@ def ue_module(
         hdrs = hdrs,
         deps = deps,
         includes = includes,
-        defines = defines,
+        defines = all_defines,
         local_defines = local_defines,
+        copts = all_copts,
         linkopts = processed_linkopts,
         visibility = visibility,
         tags = tags,

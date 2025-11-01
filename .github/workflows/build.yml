@@ -7,7 +7,7 @@ on:
     branches:
       - main
 jobs:
-  BuildAndTest:
+  build_and_test:
     strategy:
       matrix:
         os: [ ubuntu-22.04, macos-14 ]
