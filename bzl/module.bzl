@@ -170,7 +170,8 @@ def ue_module(
             "-x", "objective-c++",        # Compile as Objective-C++ (AppleToolChain.cs:455)
             "-std=c++20",                  # C++20 standard
             "-stdlib=libc++",              # Use libc++ (AppleToolChain.cs:457)
-            "-fno-exceptions",             # Exceptions OFF
+            "-fno-exceptions",             # C++ exceptions OFF
+            "-fno-objc-exceptions",        # Objective-C exceptions OFF
             "-fno-rtti",                   # RTTI OFF
             "-Wall",                       # Enable all warnings
         ],
@@ -178,7 +179,8 @@ def ue_module(
             "-x", "objective-c++",        # Compile as Objective-C++ (iOS also uses AppleToolChain)
             "-std=c++20",
             "-stdlib=libc++",
-            "-fno-exceptions",
+            "-fno-exceptions",             # C++ exceptions OFF
+            "-fno-objc-exceptions",        # Objective-C exceptions OFF
             "-fno-rtti",
             "-Wall",
         ],
