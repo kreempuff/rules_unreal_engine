@@ -27,11 +27,11 @@
 ### Build Core Module (Continued)
 
 **Immediate:**
-- 🔲 Add LZ4 third-party dependency to TraceLog
-  - Find LZ4 in Engine/Source/ThirdParty/
-  - Create ue_modules/ThirdParty/LZ4/BUILD.bazel
-  - Add to TraceLog deps
-  - Validate TraceLog builds completely
+- ✅ Add LZ4 third-party dependency to TraceLog
+  - LZ4 is vendored in TraceLog/Private/Trace/LZ4/ (not external)
+  - Fixed: Added Private/**/*.inl to hdrs glob
+  - Fixed: Implemented private_includes parameter
+  - Result: TraceLog compiles 9/21 files (blocked on Objective-C++ for Mac)
 
 **Core Dependencies:**
 - 🔲 Write BUILD.bazel for GuidelinesSupportLibrary
