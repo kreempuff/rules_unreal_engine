@@ -52,12 +52,15 @@ ln -sf /path/to/rules_unreal_engine/ue_modules/Runtime/Core/BUILD.bazel .
 | Module | Status | Dependencies | Notes |
 |--------|--------|--------------|-------|
 | **Runtime** |  |  |  |
-| Core | 🟡 Partial | TraceLog | Missing ThirdParty deps, needs UHT |
-| TraceLog | ✅ Complete | Core (headers only) | Circular with Core |
-| BuildSettings | 🟡 Partial | Core (headers only) | Needs version defines |
-| AtomicQueue | ✅ Complete | None | Header-only |
-| CoreUObject | ❌ Not started | Core | Needs UHT |
-| Engine | ❌ Not started | Core, CoreUObject | Needs UHT |
+| Core | 🟡 In Progress | TraceLog, GSL, AtomicQueue, BuildSettings, BLAKE3 | 5/8 deps |
+| TraceLog | 🟡 Partial | Core_headers | 9/21 files, Objective-C++ blocker |
+| BuildSettings | ✅ Complete | Core_headers | Builds ✅ |
+| CoreUObject | ❌ Not Started | Core | Needs UHT |
+| Engine | ❌ Not Started | Core, CoreUObject | Needs UHT |
+| **ThirdParty** |  |  |  |
+| AtomicQueue | ✅ Complete | None | Header-only, builds ✅ |
+| GuidelinesSupportLibrary | ✅ Complete | None | GSL header-only, builds ✅ |
+| BLAKE3 | 🟡 Partial | None | C files compile, SIMD blocker |
 
 **Legend:**
 - ✅ Complete - Fully implemented and tested
