@@ -307,6 +307,30 @@ See **[docs/DEVELOPMENT_WORKFLOW.md](docs/DEVELOPMENT_WORKFLOW.md)** for the com
 - Install script copies files (not symlinks), fast iteration
 - Only commit BUILD files that successfully build
 
+### Tracking Blockers
+
+**IMPORTANT: Update docs/BLOCKERS.md whenever you skip files or modules**
+
+When you exclude files from a BUILD.bazel (using `exclude_srcs`) or skip a module entirely:
+1. **Document it immediately** in `docs/BLOCKERS.md`
+2. **Explain the blocker** (missing module, missing header, etc.)
+3. **Note the priority** (High/Medium/Low)
+4. **Suggest resolution** (what module/fix is needed)
+
+**Examples of when to update BLOCKERS.md:**
+- Adding `exclude_srcs = ["Private/Foo.cpp"]` to a BUILD file
+- Discovering a module needs another module you haven't built yet
+- Finding a file needs a third-party library that doesn't exist
+- Encountering platform-specific issues
+
+**Why this matters:**
+- Prevents forgetting about skipped work
+- Helps prioritize what to build next
+- Provides clear path forward when revisiting blockers
+- Documents technical debt for the project
+
+See **[docs/BLOCKERS.md](docs/BLOCKERS.md)** for current list of all blockers.
+
 ### Module Documentation
 
 **IMPORTANT: Document BUILD file quirks in per-module READMEs**
