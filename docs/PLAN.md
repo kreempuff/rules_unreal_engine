@@ -3,6 +3,22 @@
 **Status:** In Progress
 **Last Updated:** 2025-11-01
 
+## Scope
+
+**Total UE Modules:** 835 (across Engine/Source)
+**Modules Converted:** 5 (AtomicQueue, GuidelinesSupportLibrary, TraceLog, BuildSettings, Core)
+**Progress:** 0.6%
+
+**For Core Module to Build on Mac:**
+- Need: ~8 modules (core dependencies on Mac platform)
+- Have: 4/8 (50%!)
+- Remaining: AutoRTFM, BLAKE3, OodleDataCompression, xxhash
+
+**Realistic Scope:**
+- Don't need all 835 modules
+- For working Editor build: ~50-100 key modules
+- Strategy: Build incrementally (Core → CoreUObject → Engine → Editor)
+
 ## Completed ✅
 
 **Compiler Flags:**
