@@ -10,6 +10,8 @@ def ue_module(
         module_type = "Runtime",
         srcs = None,
         hdrs = None,
+        exclude_srcs = [],
+        additional_hdrs = [],
         public_deps = [],
         private_deps = [],
         public_includes = [],
@@ -75,17 +77,22 @@ def ue_module(
 
     # Default source/header discovery with platform filtering
     if srcs == None:
-        # Common sources (exclude platform-specific directories)
+        # Build exclude list: platform dirs + user excludes
+        base_excludes = [
+            "Private/Android/**", "Private/Windows/**", "Private/Linux/**",
+            "Private/Unix/**", "Private/IOS/**", "Private/Mac/**", "Private/Apple/**"
+        ]
+        all_excludes = base_excludes + exclude_srcs
+
+        # Common sources (exclude platform-specific directories + user exclusions)
         common_cpp = native.glob(
             ["Private/**/*.cpp", "Private/**/*.mm"],
-            exclude = ["Private/Android/**", "Private/Windows/**", "Private/Linux/**",
-                      "Private/Unix/**", "Private/IOS/**", "Private/Mac/**", "Private/Apple/**"],
+            exclude = all_excludes,
             allow_empty = True,
         )
         common_c = native.glob(
             ["Private/**/*.c"],
-            exclude = ["Private/Android/**", "Private/Windows/**", "Private/Linux/**",
-                      "Private/Unix/**", "Private/IOS/**", "Private/Mac/**", "Private/Apple/**"],
+            exclude = all_excludes,
             allow_empty = True,
         )
 
@@ -153,19 +160,42 @@ def ue_module(
             allow_empty = True,
         )
 
-    # UE default compiler flags (from UBT ClangToolChain.cs)
-    ue_default_copts = [
-        "-std=c++20",                      # C++20 standard (UE default)
-        "-fno-exceptions",                 # Exceptions OFF (UE default)
-        "-fno-rtti",                       # RTTI OFF (UE default)
-        "-Wall",                           # Enable all warnings
-        # Note: -fdiagnostics-absolute-paths is Clang-only, not supported by GCC
-        # TODO: Add conditionally for Clang toolchain
-    ]
+    # Add additional headers (e.g., unity build .cpp files that should be included)
+    hdrs = hdrs + additional_hdrs
+
+    # UE default compiler flags (from UBT ClangToolChain.cs and AppleToolChain.cs)
+    # On Apple platforms, .cpp files are compiled as Objective-C++ to support Foundation headers
+    ue_default_copts = select({
+        "@platforms//os:macos": [
+            "-x", "objective-c++",        # Compile as Objective-C++ (AppleToolChain.cs:455)
+            "-std=c++20",                  # C++20 standard
+            "-stdlib=libc++",              # Use libc++ (AppleToolChain.cs:457)
+            "-fno-exceptions",             # C++ exceptions OFF
+            "-fno-objc-exceptions",        # Objective-C exceptions OFF
+            "-fno-rtti",                   # RTTI OFF
+            "-Wall",                       # Enable all warnings
+        ],
+        "@platforms//os:ios": [
+            "-x", "objective-c++",        # Compile as Objective-C++ (iOS also uses AppleToolChain)
+            "-std=c++20",
+            "-stdlib=libc++",
+            "-fno-exceptions",             # C++ exceptions OFF
+            "-fno-objc-exceptions",        # Objective-C exceptions OFF
+            "-fno-rtti",
+            "-Wall",
+        ],
+        "//conditions:default": [
+            "-std=c++20",                  # Regular C++ for non-Apple platforms
+            "-fno-exceptions",
+            "-fno-rtti",
+            "-Wall",
+        ],
+    })
 
     # UE build configuration defines (required by Core/Misc/Build.h)
     # TODO: Make these configurable via Bazel config_setting
     ue_build_defines = [
+        "__UNREAL__=1",                   # Standard UE define (used by third-party code)
         "UE_BUILD_DEVELOPMENT=1",         # Development build (default)
         "UE_BUILD_DEBUG=0",
         "UE_BUILD_TEST=0",
@@ -174,6 +204,7 @@ def ue_module(
         "WITH_ENGINE=1",                  # Compiling with engine
         "WITH_UNREAL_DEVELOPER_TOOLS=0",
         "WITH_PLUGIN_SUPPORT=1",
+        "WITH_SERVER_CODE=1",             # Include server code (for dedicated servers)
         "IS_MONOLITHIC=0",                # Modular build
         "IS_PROGRAM=0",                   # Not a standalone program
     ]
@@ -190,6 +221,8 @@ def ue_module(
             "UBT_COMPILED_PLATFORM=Mac",
             "PLATFORM_MAC=1",
             "PLATFORM_APPLE=1",
+            "PLATFORM_COMPILER_OPTIMIZATION_PG=0",           # Profile-guided optimization disabled
+            "PLATFORM_COMPILER_OPTIMIZATION_PG_PROFILING=0", # PG profiling disabled
         ],
         "@platforms//os:linux": [
             "UBT_COMPILED_PLATFORM=Linux",
@@ -210,6 +243,11 @@ def ue_module(
     # Combine UE defines with user defines
     # Order: UE build config → UE platform → user defines
     all_defines = ue_build_defines + ue_platform_defines + defines
+
+    # Add module-specific local defines (private to this module only)
+    # UE_MODULE_NAME: Used by IMPLEMENT_MODULE macro
+    module_local_defines = ['UE_MODULE_NAME=\\"' + name + '\\"']
+    all_local_defines = module_local_defines + local_defines
 
     # Build include paths
     includes = []
@@ -248,7 +286,7 @@ def ue_module(
             hdrs = hdrs,
             includes = includes,
             defines = all_defines,
-            local_defines = local_defines,
+            local_defines = all_local_defines,
             copts = ["-std=c11", "-Wall"],  # C flags (not C++)
             tags = ["ue_module_c_part"],
             visibility = ["//visibility:private"],
@@ -292,7 +330,7 @@ def ue_module(
         deps = deps,  # Includes _c library if C files exist
         includes = includes,
         defines = all_defines,
-        local_defines = local_defines,
+        local_defines = all_local_defines,
         copts = all_copts,  # C++ flags
         linkopts = processed_linkopts,
         visibility = visibility,

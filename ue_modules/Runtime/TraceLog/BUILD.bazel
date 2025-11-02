@@ -19,7 +19,10 @@ ue_module(
     # - Depend on Core_headers (headers-only target)
     # - Core (implementation) depends on TraceLog
     # - No cycle: TraceLog → Core_headers, Core → TraceLog
-    public_deps = ["//Engine/Source/Runtime/Core:Core_headers"],
+    public_deps = [
+        "//Engine/Source/Runtime/Core:Core_headers",
+        "//Engine/Source/Runtime/AutoRTFM",  # Needs AutoRTFM.h header
+    ],
 
     # TraceLog vendors LZ4 in Private/Trace/LZ4/
     # Need to add Private/Trace to includes so Codec.cpp can find "LZ4/lz4.c.inl"
