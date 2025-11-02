@@ -101,6 +101,46 @@
   - Compare with nm -g (symbol exports)
   - Verify compatibility
 
+## Precompiled Dependencies (Future Work)
+
+**Goal:** Convert all precompiled binary dependencies to Bazel-native source builds for full hermetic builds.
+
+**Why:**
+- Hermetic builds (no dependency on vendor-provided binaries)
+- Cross-platform consistency
+- Better caching and incremental builds
+- Ability to customize and debug library code
+- Eliminate binary blob security concerns
+
+### Known Precompiled Modules
+
+| Module | Type | Current Status | Priority | Notes |
+|--------|------|----------------|----------|-------|
+| **OodleDataCompression** | Compression | Precompiled .a/.lib | High | RAD Game Tools library, version 2.9.13. Essential for Core. |
+| **BLAKE3** | Hashing | Partial (SIMD issues) | Medium | C implementation compiles, SIMD intrinsics blocked on Mac ARM |
+| **mimalloc** | Allocator | Unknown | Low | Platform-specific, may be precompiled |
+| **IntelTBB** | Threading | Unknown | Low | Platform-specific, likely precompiled |
+| **jemalloc** | Allocator | Unknown | Low | Platform-specific, may be precompiled |
+| **PLCrashReporter** | Crash Reporting | Unknown | Low | Mac-specific, likely precompiled |
+
+**Action Items:**
+- 🔲 Survey all Core dependencies to identify precompiled modules
+- 🔲 Research source availability for each module
+- 🔲 Create Bazel build rules for open-source libraries (BLAKE3, TBB, jemalloc)
+- 🔲 Evaluate licensing for proprietary libraries (Oodle)
+- 🔲 Phase 2+: Systematically replace precompiled deps with source builds
+
+### Build-from-Source Modules (Reference)
+
+These modules successfully build from source with Bazel:
+- ✅ AtomicQueue (header-only)
+- ✅ GuidelinesSupportLibrary (header-only)
+- ✅ xxhash (header-only in UE)
+- ✅ BuildSettings (UE source)
+- ✅ AutoRTFM (UE source)
+- ✅ TraceLog (UE source, partial - Objective-C++ blocker)
+- 🟡 Core (UE source, in progress)
+
 ## Current Branch
 
 Working on main - all Phase 1.3 work merged!

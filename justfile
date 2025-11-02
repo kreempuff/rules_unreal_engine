@@ -41,6 +41,20 @@ build:
 install path:
     LOCAL_DEV=1 ./tools/install_builds.sh {{path}}
 
+# Setup test UE repository from local UE clone
+setup-test-ue:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -d .test_ue/UnrealEngine ]; then
+        echo "Test UE already exists at .test_ue/UnrealEngine"
+        echo "Run 'just clean-test-ue' first if you want to reclone"
+        exit 1
+    fi
+    echo "Cloning local UE from /Users/kareemmarch/Projects/UnrealEngine..."
+    mkdir -p .test_ue
+    git clone file:///Users/kareemmarch/Projects/UnrealEngine .test_ue/UnrealEngine
+    echo "Test UE setup complete!"
+
 # Clean .test_ue/ persistent clone
 clean-test-ue:
     rm -rf .test_ue/UnrealEngine

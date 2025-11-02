@@ -73,16 +73,69 @@ def ue_module(
         )
     """
 
-    # Default source/header discovery
+    # Default source/header discovery with platform filtering
     if srcs == None:
-        srcs = native.glob(
-            [
-                "Private/**/*.cpp",
-                "Private/**/*.c",
-                "Private/**/*.mm",  # Objective-C++
-            ],
+        # Common sources (exclude platform-specific directories)
+        common_cpp = native.glob(
+            ["Private/**/*.cpp", "Private/**/*.mm"],
+            exclude = ["Private/Android/**", "Private/Windows/**", "Private/Linux/**",
+                      "Private/Unix/**", "Private/IOS/**", "Private/Mac/**", "Private/Apple/**"],
             allow_empty = True,
         )
+        common_c = native.glob(
+            ["Private/**/*.c"],
+            exclude = ["Private/Android/**", "Private/Windows/**", "Private/Linux/**",
+                      "Private/Unix/**", "Private/IOS/**", "Private/Mac/**", "Private/Apple/**"],
+            allow_empty = True,
+        )
+
+        # Platform-specific C++ sources
+        platform_cpp = select({
+            "@platforms//os:macos": native.glob(
+                ["Private/Mac/**/*.cpp", "Private/Mac/**/*.mm", "Private/Apple/**/*.cpp", "Private/Apple/**/*.mm"],
+                allow_empty = True),
+            "@platforms//os:ios": native.glob(
+                ["Private/IOS/**/*.cpp", "Private/IOS/**/*.mm", "Private/Apple/**/*.cpp", "Private/Apple/**/*.mm"],
+                allow_empty = True),
+            "@platforms//os:linux": native.glob(
+                ["Private/Linux/**/*.cpp", "Private/Unix/**/*.cpp"],
+                allow_empty = True),
+            "@platforms//os:windows": native.glob(
+                ["Private/Windows/**/*.cpp"],
+                allow_empty = True),
+            "@platforms//os:android": native.glob(
+                ["Private/Android/**/*.cpp", "Private/Linux/**/*.cpp", "Private/Unix/**/*.cpp"],
+                allow_empty = True),
+            "//conditions:default": [],
+        })
+
+        # Platform-specific C sources
+        platform_c = select({
+            "@platforms//os:macos": native.glob(
+                ["Private/Mac/**/*.c", "Private/Apple/**/*.c"],
+                allow_empty = True),
+            "@platforms//os:ios": native.glob(
+                ["Private/IOS/**/*.c", "Private/Apple/**/*.c"],
+                allow_empty = True),
+            "@platforms//os:linux": native.glob(
+                ["Private/Linux/**/*.c", "Private/Unix/**/*.c"],
+                allow_empty = True),
+            "@platforms//os:windows": native.glob(
+                ["Private/Windows/**/*.c"],
+                allow_empty = True),
+            "@platforms//os:android": native.glob(
+                ["Private/Android/**/*.c", "Private/Linux/**/*.c", "Private/Unix/**/*.c"],
+                allow_empty = True),
+            "//conditions:default": [],
+        })
+
+        # Don't combine - we already have them separated
+        # Set a flag so we skip the separation step later
+        _auto_globbed_srcs = True
+        _globbed_cpp = common_cpp + platform_cpp
+        _globbed_c = common_c + platform_c
+    else:
+        _auto_globbed_srcs = False
 
     if hdrs == None:
         hdrs = native.glob(
@@ -172,8 +225,14 @@ def ue_module(
         includes.extend(private_includes)
 
     # Separate C and C++ source files
-    c_files = [s for s in srcs if s.endswith(".c")]
-    cpp_files = [s for s in srcs if not s.endswith(".c")]
+    if _auto_globbed_srcs:
+        # Already separated during glob
+        c_files = _globbed_c
+        cpp_files = _globbed_cpp
+    else:
+        # User provided srcs - separate them
+        c_files = [s for s in srcs if s.endswith(".c")]
+        cpp_files = [s for s in srcs if not s.endswith(".c")]
 
     # Collect all dependencies
     deps = []

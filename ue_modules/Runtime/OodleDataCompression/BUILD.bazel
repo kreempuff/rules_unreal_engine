@@ -1,0 +1,46 @@
+# OodleDataCompression Module
+# RAD Game Tools Oodle compression library (precompiled)
+# Location: Engine/Source/Runtime/OodleDataCompression
+# Original: OodleDataCompression.Build.cs
+
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+# Oodle version (from OodleDataCompression.Build.cs:12)
+OODLE_VERSION = "2.9.13"
+
+cc_library(
+    name = "OodleDataCompression",
+
+    # Public headers
+    hdrs = glob([
+        "Sdks/{}/include/*.h".format(OODLE_VERSION),
+    ]),
+
+    # From OodleDataCompression.Build.cs:31
+    # PublicSystemIncludePaths.Add(IncludeDirectory)
+    includes = ["Sdks/{}/include".format(OODLE_VERSION)],
+
+    # Platform-specific precompiled libraries
+    # From OodleDataCompression.Build.cs:49-53 (Mac)
+    srcs = select({
+        "@platforms//os:macos": [
+            "Sdks/{}/lib/Mac/liboo2coremac64.a".format(OODLE_VERSION),
+        ],
+        "@platforms//os:linux": [
+            "Sdks/{}/lib/Linux/liboo2corelinux64.a".format(OODLE_VERSION),
+        ],
+        "@platforms//os:windows": [
+            "Sdks/{}/lib/Win64/oo2core_win64.lib".format(OODLE_VERSION),
+        ],
+        "//conditions:default": [],
+    }),
+
+    # Note: Debug libraries available but not used by default
+    # liboo2coremac64_dbg.a, oo2core_win64_debug.lib, etc.
+    # Set bAllowDebugLibrary = true in .Build.cs to enable
+
+    visibility = ["//visibility:public"],
+
+    # Mark as external third-party library
+    tags = ["third_party", "oodle", "precompiled"],
+)
