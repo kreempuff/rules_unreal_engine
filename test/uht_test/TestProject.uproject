@@ -1,0 +1,13 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "5.5",
+	"Category": "",
+	"Description": "",
+	"Modules": [
+		{
+			"Name": "TestModule",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}
