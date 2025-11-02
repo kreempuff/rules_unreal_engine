@@ -4,9 +4,9 @@
 test-gitdeps filter="":
     bats test/gitdeps.bats {{if filter != "" { "--filter '" + filter + "'" } else { "" } }}
 
-# Run ue_module BATS tests
-test-ue-module filter="":
-    bats test/ue_module.bats {{if filter != "" { "--filter '" + filter + "'" } else { "" } }}
+# Run ue_module BATS tests (supports module filter for E2E tests)
+test-ue-module filter="" modules="":
+    {{if modules != "" { "TEST_MODULES='" + modules + "'" } else { "" } }} bats test/ue_module.bats {{if filter != "" { "--filter '" + filter + "'" } else { "" } }}
 
 # Run install_builds BATS tests
 test-install filter="":
