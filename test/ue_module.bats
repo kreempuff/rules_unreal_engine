@@ -241,7 +241,7 @@ EOF
     rm -rf "$TEST_MODULE_DIR"
 }
 
-@test "ue_module: E2E - Build AtomicQueue from real UE (header-only)" {
+@test "ue_module: E2E - Build all installed modules from real UE" {
     if [ -z "$RUN_SLOW_TESTS" ]; then
         skip "Slow test - set RUN_SLOW_TESTS=1"
     fi

@@ -171,10 +171,31 @@ def ue_module(
     if private_includes:
         includes.extend(private_includes)
 
+    # Separate C and C++ source files
+    c_files = [s for s in srcs if s.endswith(".c")]
+    cpp_files = [s for s in srcs if not s.endswith(".c")]
+
     # Collect all dependencies
     deps = []
     deps.extend(public_deps)
     deps.extend(private_deps)
+
+    # If we have C files, create a separate C library with C-specific flags
+    if c_files:
+        c_lib_name = name + "_c"
+        cc_library(
+            name = c_lib_name,
+            srcs = c_files,
+            hdrs = hdrs,
+            includes = includes,
+            defines = all_defines,
+            local_defines = local_defines,
+            copts = ["-std=c11", "-Wall"],  # C flags (not C++)
+            tags = ["ue_module_c_part"],
+            visibility = ["//visibility:private"],
+        )
+        # Add C library as dependency for main target
+        deps.append(":" + c_lib_name)
 
     # Process frameworks and linkopts
     # Note: frameworks should be pre-formatted as "-framework Name" when using select()
@@ -204,16 +225,16 @@ def ue_module(
         "ue_module_type:" + module_type,
     ]
 
-    # Create the underlying cc_library
+    # Create the main cc_library (C++ files only, C files in separate library)
     cc_library(
         name = name,
-        srcs = srcs,
+        srcs = cpp_files,  # Only C++ files (C files in _c library)
         hdrs = hdrs,
-        deps = deps,
+        deps = deps,  # Includes _c library if C files exist
         includes = includes,
         defines = all_defines,
         local_defines = local_defines,
-        copts = all_copts,
+        copts = all_copts,  # C++ flags
         linkopts = processed_linkopts,
         visibility = visibility,
         tags = tags,

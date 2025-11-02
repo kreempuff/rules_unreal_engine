@@ -3,6 +3,22 @@
 **Status:** In Progress
 **Last Updated:** 2025-11-01
 
+## Scope
+
+**Total UE Modules:** 835 (across Engine/Source)
+**Modules Converted:** 5 (AtomicQueue, GuidelinesSupportLibrary, TraceLog, BuildSettings, Core)
+**Progress:** 0.6%
+
+**For Core Module to Build on Mac:**
+- Need: ~8 modules (core dependencies on Mac platform)
+- Have: 4/8 (50%!)
+- Remaining: AutoRTFM, BLAKE3, OodleDataCompression, xxhash
+
+**Realistic Scope:**
+- Don't need all 835 modules
+- For working Editor build: ~50-100 key modules
+- Strategy: Build incrementally (Core → CoreUObject → Engine → Editor)
+
 ## Completed ✅
 
 **Compiler Flags:**
@@ -13,6 +29,7 @@
 - ✅ Add platform defines (UBT_COMPILED_PLATFORM, PLATFORM_MAC, etc.)
 - ✅ Add module API macros (CORE_API, ENGINE_API, auto-generated)
 - ✅ Test flags with compile-time validation (TestUEFlags.cpp)
+- ✅ **C/C++ file separation** - Detects .c vs .cpp, applies appropriate flags
 
 **Build Core Module:**
 - ✅ Create BUILD.bazel for Core module
@@ -34,13 +51,15 @@
   - Result: TraceLog compiles 9/21 files (blocked on Objective-C++ for Mac)
 
 **Core Dependencies:**
-- 🔲 Write BUILD.bazel for GuidelinesSupportLibrary
-- 🔲 Write BUILD.bazel for BuildSettings
+- ✅ Write BUILD.bazel for GuidelinesSupportLibrary (header-only, builds successfully!)
+- ✅ Write BUILD.bazel for BuildSettings (uses Core_headers correctly)
+- ✅ Write BUILD.bazel for BLAKE3 (C source files compile with C flags!)
 - 🔲 Write BUILD.bazel for AutoRTFM
-- 🔲 Write BUILD.bazel for BLAKE3
 - 🔲 Write BUILD.bazel for OodleDataCompression
 - 🔲 Write BUILD.bazel for xxhash
 - 🔲 Platform-specific: mimalloc, IntelTBB, jemalloc, PLCrashReporter
+
+**Progress:** 5/8 Core dependencies completed (62.5% on Mac platform)
 
 **Core Compilation:**
 - 🔲 Add all Core dependencies to Core BUILD.bazel
