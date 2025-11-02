@@ -62,23 +62,17 @@ ue_module(
     module_type = "Runtime",
 
     # Unity build pattern: lz4.cpp is included by lz4hc.cpp, not compiled separately
-    # Temporarily exclude problematic files
+    # Exclude files requiring other modules to be fully built (7 remaining)
     exclude_srcs = [
         "Private/Compression/lz4.cpp",  # Unity build: included by lz4hc.cpp
         "Private/HAL/ConsoleManager.cpp",  # TODO: Fix FConsoleManager header visibility
-        "Private/HAL/MallocTBB.cpp",  # TODO: Add IntelTBB dependency
+        "Private/HAL/MallocTBB.cpp",  # TODO: Build IntelTBB module
         "Private/HAL/MallocJemalloc.cpp",  # Linux-specific allocator
         "Private/HAL/MallocMimalloc.cpp",  # Windows/Linux allocator
-        # Files needing Runtime/Launch/Resources/Version.h
-        "Private/Misc/App.cpp",
-        "Private/Misc/ConfigManifest.cpp",
-        "Private/Misc/EngineVersion.cpp",
-        "Private/FramePro/FrameProProfiler.cpp",
-        # Other module dependencies
-        "Private/Misc/CoreMisc.cpp",  # TODO: Needs DerivedDataCache module
-        "Private/Misc/ObjectThumbnail.cpp",  # TODO: Needs ImageCore module
-        "Private/Serialization/Archive.cpp",  # TODO: Needs TargetPlatform module
-        "Private/Serialization/MemoryImage.cpp",  # TODO: Needs TargetPlatform module
+        "Private/Misc/CoreMisc.cpp",  # TODO: Build DerivedDataCache module (needs DERIVEDDATACACHE_API)
+        "Private/Misc/ObjectThumbnail.cpp",  # TODO: Build ImageCore module (needs IMAGECORE_API)
+        "Private/Serialization/Archive.cpp",  # TODO: Build TargetPlatform module (needs TARGETPLATFORM_API)
+        "Private/Serialization/MemoryImage.cpp",  # TODO: Build TargetPlatform module
     ],
     additional_hdrs = ["Private/Compression/lz4.cpp"],  # Unity build: included by lz4hc.cpp
 
@@ -95,6 +89,9 @@ ue_module(
     private_deps = [
         "//Engine/Source/Runtime/BuildSettings",
         "//Engine/Source/Runtime/AutoRTFM",
+        "//Engine/Source/Runtime/Launch",  # Minimal header-only (just Version.h)
+        "//Engine/Source/Runtime/ImageCore",  # Minimal header-only
+        "//Engine/Source/Developer/TargetPlatform",  # Minimal header-only
         "//Engine/Source/ThirdParty/BLAKE3",
         "//Engine/Source/Runtime/OodleDataCompression",
         "//Engine/Source/ThirdParty/xxhash",

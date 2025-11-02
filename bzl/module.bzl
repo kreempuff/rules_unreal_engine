@@ -211,6 +211,7 @@ def ue_module(
         "WITH_SERVER_CODE=1",             # Include server code (for dedicated servers)
         "IS_MONOLITHIC=0",                # Modular build
         "IS_PROGRAM=0",                   # Not a standalone program
+        "UE_GAME=1",                      # Game build (not editor/server/client/program)
         "TBBMALLOC_ENABLED=0",            # Disable Intel TBB malloc (platform-specific)
         "USE_MALLOC_BINNED2=1",           # Use Binned2 allocator (UE default)
         "USE_MALLOC_BINNED3=0",           # Binned3 experimental allocator OFF
