@@ -21,6 +21,10 @@ ue_module(
     # - No cycle: TraceLog → Core_headers, Core → TraceLog
     public_deps = ["//Engine/Source/Runtime/Core:Core_headers"],
 
+    # TraceLog vendors LZ4 in Private/Trace/LZ4/
+    # Need to add Private/Trace to includes so Codec.cpp can find "LZ4/lz4.c.inl"
+    private_includes = ["Private/Trace"],
+
     # From TraceLog.Build.cs
     local_defines = [
         "SUPPRESS_PER_MODULE_INLINE_FILE",  # Doesn't use Core's operator new/delete

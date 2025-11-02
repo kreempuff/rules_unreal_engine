@@ -92,8 +92,10 @@ def ue_module(
                 "Public/**/*.inl",
                 "Internal/**/*.h",      # Internal headers (visible to internal modules)
                 "Internal/**/*.hpp",
+                "Internal/**/*.inl",
                 "Private/**/*.h",       # Private headers (needed for includes)
                 "Private/**/*.hpp",
+                "Private/**/*.inl",     # Private inline files (e.g., LZ4/lz4.c.inl)
             ],
             allow_empty = True,
         )
@@ -164,6 +166,10 @@ def ue_module(
         # Default: Public, Internal, and Private directories
         # UE modules expect to include from these paths
         includes.extend(["Public", "Internal", "Private"])
+
+    # Add any additional private includes
+    if private_includes:
+        includes.extend(private_includes)
 
     # Collect all dependencies
     deps = []
