@@ -1,0 +1,27 @@
+"""RapidJSON third-party library (header-only).
+
+RapidJSON is a fast JSON parser/generator for C++ with both SAX/DOM style API.
+Epic uses version 1.1.0 with custom patches.
+
+Converted from: Engine/Source/ThirdParty/RapidJSON/RapidJSON.Build.cs
+"""
+
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+# Header-only RapidJSON library
+cc_library(
+    name = "RapidJSON",
+
+    # Glob all headers from 1.1.0/rapidjson directory
+    hdrs = glob([
+        "1.1.0/rapidjson/**/*.h",
+    ]),
+
+    # Make accessible via <rapidjson/document.h> style includes
+    # The .Build.cs exposes "ThirdParty/RapidJSON/1.1.0" as system include
+    includes = ["1.1.0"],
+
+    visibility = ["//visibility:public"],
+
+    tags = ["third-party", "header-only", "rapidjson"],
+)

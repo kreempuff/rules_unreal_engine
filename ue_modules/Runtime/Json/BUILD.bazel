@@ -1,0 +1,22 @@
+"""Unreal Engine Json module.
+
+JSON serialization/deserialization for Unreal Engine using RapidJSON.
+Provides both SAX and DOM-style API for parsing and writing JSON.
+
+Converted from: Engine/Source/Runtime/Json/Json.Build.cs
+"""
+
+load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
+
+ue_module(
+    name = "Json",
+    module_type = "Runtime",
+
+    # From Json.Build.cs: PublicDependencyModuleNames
+    public_deps = [
+        "//Engine/Source/Runtime/Core",
+        "//Engine/Source/ThirdParty/RapidJSON",
+    ],
+
+    visibility = ["//visibility:public"],
+)
