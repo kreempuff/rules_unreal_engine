@@ -42,7 +42,7 @@ install path:
     LOCAL_DEV=1 ./tools/install_builds.sh {{path}}
 
 # Setup test UE repository from local UE clone
-setup-test-ue:
+setup-test-ue ue_path=("file://" + justfile_directory() / "../UnrealEngine") branch="kreempuff-release" depth="1":
     #!/usr/bin/env bash
     set -euo pipefail
     if [ -d .test_ue/UnrealEngine ]; then
@@ -50,10 +50,25 @@ setup-test-ue:
         echo "Run 'just clean-test-ue' first if you want to reclone"
         exit 1
     fi
-    echo "Cloning local UE from /Users/kareemmarch/Projects/UnrealEngine..."
+    echo "Cloning UE from {{ue_path}} (branch: {{branch}}, depth: {{depth}})..."
     mkdir -p .test_ue
-    git clone file:///Users/kareemmarch/Projects/UnrealEngine .test_ue/UnrealEngine
+    git clone --branch "{{branch}}" --depth "{{depth}}" "{{ue_path}}" .test_ue/UnrealEngine
     echo "Test UE setup complete!"
+
+# Reset test UE repository to clean state (git clean + hard reset)
+reset-test-ue:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -d .test_ue/UnrealEngine/.git ]; then
+        echo "Resetting test UE repository..."
+        cd .test_ue/UnrealEngine
+        git clean -fdx
+        git reset --hard
+        echo "Test UE reset complete!"
+    else
+        echo "No test UE repository found. Run 'just setup-test-ue' first."
+        exit 1
+    fi
 
 # Clean .test_ue/ persistent clone
 clean-test-ue:

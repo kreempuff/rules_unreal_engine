@@ -397,6 +397,36 @@ just test-all              # Fast tests
 just test-all-slow         # Including E2E
 ```
 
+### Development Workflow
+
+**When starting new work, always follow this process:**
+
+```bash
+# 1. Hard reset test UE directory to clean state
+just reset-test-ue         # Removes all uncommitted changes and BUILD files
+
+# 2. Create new feature branch
+git checkout main
+git pull
+git checkout -b feat/phase1.3-descriptive-name
+
+# 3. Install BUILD files and start work
+just install .test_ue/UnrealEngine
+cd .test_ue/UnrealEngine
+bazel build //Engine/Source/Runtime/Core
+```
+
+**Why this workflow?**
+- **Clean state**: Prevents cross-contamination between work sessions
+- **Isolated changes**: Each feature gets its own branch for clean git history
+- **Easy rollback**: Failed experiments can be discarded without affecting other work
+- **Consistent testing**: Always start from a known-good baseline
+
+**Commands:**
+- `just reset-test-ue` - Git clean + hard reset (keeps the clone)
+- `just clean-test-ue` - Deletes entire test repo (for full reset)
+- `just setup-test-ue` - Initial clone from main UE installation
+
 ### References
 
 - **Task List:** `docs/PLAN.md`
