@@ -19,13 +19,13 @@
 
 ## P0: Critical Path
 
-### Core ✅ (In Progress - 21% complete)
+### Core ✅ (98.6% complete)
 - **Why:** Foundation of everything in UE
-- **Complexity:** Hard (539 files, platform-specific, UHT dependencies)
-- **Dependencies:** TraceLog, BuildSettings, AtomicQueue, GSL, BLAKE3, AutoRTFM, OodleDataCompression, xxhash, PLCrashReporter, mimalloc, IntelTBB
+- **Complexity:** Hard (514 files, platform-specific, module dependencies)
+- **Dependencies:** TraceLog, BuildSettings, AtomicQueue, GSL, BLAKE3, AutoRTFM, OodleDataCompression, xxhash, Launch (minimal)
 - **Server:** ✅ Required
-- **Status:** 8/8 Mac deps done, 114/539 files compiling
-- **Blockers:** FConsoleManager header resolution, missing third-party libs
+- **Status:** 507/514 files compiling, libCore.a (44 MB)
+- **Blockers:** 7 files need ImageCore, TargetPlatform, DerivedDataCache, IntelTBB modules
 
 ### UnrealHeaderTool (UHT)
 - **Why:** Generates reflection code (.generated.h/.cpp) for UCLASS/UPROPERTY
@@ -41,17 +41,28 @@
 - **Server:** ✅ Required
 - **Blocker:** Requires UHT integration complete
 
-### Projects
+### Projects ✅ (100% complete)
 - **Why:** Plugin system, .uproject parsing, module discovery
 - **Complexity:** Simple (mostly JSON parsing)
 - **Dependencies:** Core, Json
 - **Server:** ✅ Required
+- **Status:** 14/14 files compiling, libProjects.a (4.6 MB)
+- **Build time:** 3.5 seconds
 
-### Json (ThirdParty)
+### Json ✅ (100% complete)
 - **Why:** Configuration, data serialization, used everywhere
-- **Complexity:** Simple (third-party library)
-- **Dependencies:** Core
+- **Complexity:** Simple (JSON parsing with RapidJSON)
+- **Dependencies:** Core, RapidJSON (header-only)
 - **Server:** ✅ Required
+- **Status:** 9/9 files compiling, libJson.a (1.7 MB)
+- **Build time:** 2.2 seconds
+
+### RapidJSON ✅ (ThirdParty - header-only)
+- **Why:** Fast JSON parser/generator used by Json module
+- **Complexity:** Trivial (header-only third-party library)
+- **Dependencies:** None
+- **Server:** ✅ Required
+- **Status:** Header-only library (v1.1.0)
 
 ---
 
