@@ -13,7 +13,7 @@ jobs:
     outputs:
       docs_only: ${{ steps.changed.outputs.docs_any_changed == 'true' && steps.changed.outputs.code_any_changed != 'true' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
