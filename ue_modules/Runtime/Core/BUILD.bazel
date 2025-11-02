@@ -14,49 +14,8 @@ Converted from: Engine/Source/Runtime/Core/Core.Build.cs
 load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
-# Core headers-only target (breaks circular dependency with TraceLog)
-cc_library(
-    name = "Core_headers",
-    hdrs = glob(
-        [
-            "Public/**/*.h",
-            "Public/**/*.hpp",
-            "Public/**/*.inl",
-            "Internal/**/*.h",
-            "Private/**/*.h",
-        ],
-        allow_empty = True,
-    ),
-    includes = ["Public", "Internal", "Private"],
-    defines = [
-        "UE_BUILD_DEVELOPMENT=1",
-        "UE_BUILD_DEBUG=0",
-        "UE_BUILD_TEST=0",
-        "UE_BUILD_SHIPPING=0",
-        "WITH_EDITOR=0",
-        "WITH_ENGINE=1",
-        "WITH_UNREAL_DEVELOPER_TOOLS=0",
-        "WITH_PLUGIN_SUPPORT=1",
-        "IS_MONOLITHIC=0",
-        "IS_PROGRAM=0",
-        "CORE_API=",
-    ] + select({
-        "@platforms//os:macos": [
-            "UBT_COMPILED_PLATFORM=Mac",
-            "PLATFORM_MAC=1",
-            "PLATFORM_APPLE=1",
-        ],
-        "@platforms//os:linux": [
-            "UBT_COMPILED_PLATFORM=Linux",
-            "PLATFORM_LINUX=1",
-            "PLATFORM_UNIX=1",
-        ],
-        "//conditions:default": [],
-    }),
-    visibility = ["//visibility:public"],
-)
-
-# Full Core module (implementation)
+# Core module
+# Note: Core_headers is now auto-created by ue_module (all modules get _headers targets)
 ue_module(
     name = "Core",
     module_type = "Runtime",

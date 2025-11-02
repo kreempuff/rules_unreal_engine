@@ -336,6 +336,17 @@ def ue_module(
         "ue_module_type:" + module_type,
     ]
 
+    # Create headers-only target (for circular dependencies and faster compiles)
+    # Every ue_module automatically gets a {name}_headers target
+    cc_library(
+        name = name + "_headers",
+        hdrs = hdrs,
+        includes = includes,
+        defines = all_defines,  # Public defines (no local_defines - those are private)
+        visibility = visibility,
+        tags = tags + ["headers_only"],
+    )
+
     # Create the main cc_library (C++ files only, C files in separate library)
     cc_library(
         name = name,
