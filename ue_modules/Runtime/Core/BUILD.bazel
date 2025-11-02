@@ -49,8 +49,6 @@ ue_module(
         "//Engine/Source/Runtime/BuildSettings",
         "//Engine/Source/Runtime/AutoRTFM",
         "//Engine/Source/Runtime/Launch",  # Minimal header-only (just Version.h)
-        "//Engine/Source/Runtime/ImageCore",  # Minimal header-only
-        "//Engine/Source/Developer/TargetPlatform",  # Minimal header-only
         "//Engine/Source/ThirdParty/BLAKE3",
         "//Engine/Source/Runtime/OodleDataCompression",
         "//Engine/Source/ThirdParty/xxhash",
