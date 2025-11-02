@@ -1,0 +1,33 @@
+"""Microsoft Guidelines Support Library (GSL).
+
+Header-only C++ library providing utilities from the C++ Core Guidelines.
+
+Converted from: Engine/Source/ThirdParty/GuidelinesSupportLibrary/GuidelinesSupportLibrary.Build.cs
+"""
+
+load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
+
+ue_module(
+    name = "GuidelinesSupportLibrary",
+    module_type = "ThirdParty",
+
+    # Header-only library
+    srcs = [],
+    # GSL uses extension-less headers (modern C++ style)
+    hdrs = glob(
+        [
+            "GSL-1144/include/**/*.h",
+            "GSL-1144/include/gsl/*",  # Extension-less headers (gsl/span, gsl/assert, etc.)
+        ],
+        allow_empty = True,
+    ),
+
+    # From GuidelinesSupportLibrary.Build.cs: PublicSystemIncludePaths
+    # Point to the include directory within the GSL library
+    public_includes = ["GSL-1144/include"],
+
+    # From GuidelinesSupportLibrary.Build.cs: PublicDefinitions
+    defines = ["GSL_NO_IOSTREAMS"],
+
+    visibility = ["//visibility:public"],
+)

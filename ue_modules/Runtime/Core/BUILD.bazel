@@ -68,9 +68,8 @@ ue_module(
     public_deps = [
         ":Core_headers",  # Our own headers
         "//Engine/Source/Runtime/TraceLog",
-        # TODO: Add remaining dependencies from Core.Build.cs:
-        # - GuidelinesSupportLibrary
-        # - AtomicQueue
+        "//Engine/Source/ThirdParty/GuidelinesSupportLibrary",
+        "//Engine/Source/ThirdParty/AtomicQueue",
     ],
 
     # From Core.Build.cs: PrivateDependencyModuleNames
