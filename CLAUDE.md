@@ -290,6 +290,23 @@ bats test/gitdeps.bats
 bats test/ue_module.bats
 ```
 
+### Development Workflow
+
+**IMPORTANT: Follow the iterative development workflow for adding new UE modules**
+
+See **[docs/DEVELOPMENT_WORKFLOW.md](docs/DEVELOPMENT_WORKFLOW.md)** for the complete workflow:
+1. Create BUILD files in `ue_modules/` directory (project root)
+2. Install to test repo with `just install .test_ue/UnrealEngine`
+3. Test build in test repo
+4. Commit when successful
+5. Repeat for next module
+
+**Key points:**
+- Always create BUILD files in the project's `ue_modules/` directory
+- Test repo (`.test_ue/UnrealEngine`) is for validation only
+- Install script copies files (not symlinks), fast iteration
+- Only commit BUILD files that successfully build
+
 ### Module Documentation
 
 **IMPORTANT: Document BUILD file quirks in per-module READMEs**
