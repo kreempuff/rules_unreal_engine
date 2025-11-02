@@ -63,16 +63,7 @@ ue_module(
 
     # Unity build pattern: lz4.cpp is included by lz4hc.cpp, not compiled separately
     exclude_srcs = ["Private/Compression/lz4.cpp"],
-
-    # Add lz4.cpp as header so lz4hc.cpp can include it
-    hdrs = glob([
-        "Public/**/*.h",
-        "Public/**/*.inl",
-        "Internal/**/*.h",
-        "Private/**/*.h",
-        "Private/**/*.inl",
-        "Private/Compression/lz4.cpp",  # Unity build: included by lz4hc.cpp
-    ], allow_empty = True),
+    additional_hdrs = ["Private/Compression/lz4.cpp"],  # Unity build: included by lz4hc.cpp
 
     # From Core.Build.cs: PublicDependencyModuleNames
     public_deps = [

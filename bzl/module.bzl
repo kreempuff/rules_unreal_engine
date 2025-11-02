@@ -11,6 +11,7 @@ def ue_module(
         srcs = None,
         hdrs = None,
         exclude_srcs = [],
+        additional_hdrs = [],
         public_deps = [],
         private_deps = [],
         public_includes = [],
@@ -159,6 +160,9 @@ def ue_module(
             allow_empty = True,
         )
 
+    # Add additional headers (e.g., unity build .cpp files that should be included)
+    hdrs = hdrs + additional_hdrs
+
     # UE default compiler flags (from UBT ClangToolChain.cs and AppleToolChain.cs)
     # On Apple platforms, .cpp files are compiled as Objective-C++ to support Foundation headers
     ue_default_copts = select({
@@ -215,6 +219,8 @@ def ue_module(
             "UBT_COMPILED_PLATFORM=Mac",
             "PLATFORM_MAC=1",
             "PLATFORM_APPLE=1",
+            "PLATFORM_COMPILER_OPTIMIZATION_PG=0",           # Profile-guided optimization disabled
+            "PLATFORM_COMPILER_OPTIMIZATION_PG_PROFILING=0", # PG profiling disabled
         ],
         "@platforms//os:linux": [
             "UBT_COMPILED_PLATFORM=Linux",
