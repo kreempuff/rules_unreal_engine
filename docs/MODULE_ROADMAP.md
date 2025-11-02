@@ -80,25 +80,31 @@
 - **Dependencies:** Core, TraceLog
 - **Server:** ✅ Required (critical for networking)
 
-### NetCommon
+### NetCommon ✅ (100% complete)
 - **Why:** Shared networking utilities
 - **Complexity:** Simple
 - **Dependencies:** Core
 - **Server:** ✅ Required
+- **Status:** 1/1 file, libNetCommon.a (5 KB)
+- **Build time:** 1.3 seconds
 
-### Sockets
+### Sockets ✅ (100% complete - Mac platform)
 - **Why:** Low-level TCP/UDP socket primitives
 - **Complexity:** Medium (platform-specific implementations)
 - **Dependencies:** Core, NetCommon
 - **Server:** ✅ Required
 - **Priority:** **HIGH** for multiplayer
+- **Status:** 10/17 files (Mac + common), libSockets.a (693 KB)
+- **Build time:** 2.0 seconds
 
-### Networking
+### Networking ✅ (100% complete)
 - **Why:** Connection management, packet handling
-- **Complexity:** Medium
+- **Complexity:** Medium (IPv4 addressing, Steam endpoints)
 - **Dependencies:** Core, Sockets
 - **Server:** ✅ Required
 - **Priority:** **HIGH** for multiplayer
+- **Status:** 7/7 files, libNetworking.a (51 KB)
+- **Build time:** 1.7 seconds
 
 ### NetCore
 - **Why:** High-level networking types and interfaces
@@ -106,6 +112,21 @@
 - **Dependencies:** Core, CoreUObject, TraceLog, NetCommon
 - **Server:** ✅ Required
 - **Priority:** **HIGH** for multiplayer
+
+### SandboxFile ✅ (100% complete)
+- **Why:** File I/O abstraction with security sandboxing
+- **Complexity:** Simple
+- **Dependencies:** Core
+- **Server:** ✅ Required
+- **Status:** 1/1 file, libSandboxFile.a (167 KB)
+- **Build time:** 1.5 seconds
+
+### OpenGL ✅ (ThirdParty - header-only)
+- **Why:** OpenGL headers and platform frameworks
+- **Complexity:** Trivial (header-only)
+- **Dependencies:** None
+- **Server:** ❌ Not needed (graphics library)
+- **Status:** Header-only + Mac frameworks (OpenGL, QuartzCore)
 
 ### PakFile
 - **Why:** Archive file system for packaged games
@@ -119,11 +140,12 @@
 - **Dependencies:** Core
 - **Server:** ✅ Required
 
-### ApplicationCore
+### ApplicationCore ⚠️ (Blocked)
 - **Why:** Platform abstraction, windowing, input system foundation
 - **Complexity:** Medium (platform-specific)
-- **Dependencies:** Core, RHI (include only)
+- **Dependencies:** Core, InputDevice, Analytics, SynthBenchmark
 - **Server:** ⚠️ Partial (headless mode still needs some platform services)
+- **Blocker:** Needs InputDevice module for *Application.cpp files
 
 ### InputCore
 - **Why:** Input event system (keyboard, mouse, gamepad)
