@@ -290,6 +290,25 @@ bats test/gitdeps.bats
 bats test/ue_module.bats
 ```
 
+### Module Documentation
+
+**IMPORTANT: Document BUILD file quirks in per-module READMEs**
+
+When creating BUILD.bazel files for UE modules, create a README.md in the same directory documenting:
+- Build quirks (unity builds, special includes, platform-specific issues)
+- Dependencies and why they're needed
+- Complexity notes and current status
+- Known issues and blockers
+
+**Example:** `ue_modules/Runtime/Core/README.md` documents:
+- Unity build pattern (lz4.cpp)
+- Objective-C++ requirement on Mac
+- Circular dependency with TraceLog
+- Platform-specific source files
+- All discovered build issues
+
+**Why:** Future contributors need context for non-obvious BUILD patterns without digging through commit history.
+
 ### Testing Guidelines
 
 **IMPORTANT: Always use BATS tests for real repository structures**
