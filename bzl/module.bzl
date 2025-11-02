@@ -189,6 +189,7 @@ def ue_module(
     # UE build configuration defines (required by Core/Misc/Build.h)
     # TODO: Make these configurable via Bazel config_setting
     ue_build_defines = [
+        "__UNREAL__=1",                   # Standard UE define (used by third-party code)
         "UE_BUILD_DEVELOPMENT=1",         # Development build (default)
         "UE_BUILD_DEBUG=0",
         "UE_BUILD_TEST=0",
@@ -235,6 +236,11 @@ def ue_module(
     # Order: UE build config → UE platform → user defines
     all_defines = ue_build_defines + ue_platform_defines + defines
 
+    # Add module-specific local defines (private to this module only)
+    # UE_MODULE_NAME: Used by IMPLEMENT_MODULE macro
+    module_local_defines = ['UE_MODULE_NAME=\\"' + name + '\\"']
+    all_local_defines = module_local_defines + local_defines
+
     # Build include paths
     includes = []
     if public_includes:
@@ -272,7 +278,7 @@ def ue_module(
             hdrs = hdrs,
             includes = includes,
             defines = all_defines,
-            local_defines = local_defines,
+            local_defines = all_local_defines,
             copts = ["-std=c11", "-Wall"],  # C flags (not C++)
             tags = ["ue_module_c_part"],
             visibility = ["//visibility:private"],
@@ -316,7 +322,7 @@ def ue_module(
         deps = deps,  # Includes _c library if C files exist
         includes = includes,
         defines = all_defines,
-        local_defines = local_defines,
+        local_defines = all_local_defines,
         copts = all_copts,  # C++ flags
         linkopts = processed_linkopts,
         visibility = visibility,

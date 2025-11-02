@@ -98,8 +98,10 @@ ue_module(
 
     # Additional include paths for subdirectories
     # MiMalloc.c needs to find IncludeMiMalloc.h in same directory
+    # ApplePlatformRunnableThread.h uses absolute path "Runtime/Core/Private/..."
     private_includes = [
         "Private/Thirdparty",
+        "../..",  # Engine/Source (for absolute-style includes like "Runtime/Core/Private/...")
     ],
 
     visibility = ["//visibility:public"],
