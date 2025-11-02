@@ -1,7 +1,9 @@
 # Phase 1.3 Remaining Work Plan
 
 **Status:** In Progress
-**Last Updated:** 2025-11-01
+**Last Updated:** 2025-11-02
+
+**See also:** [MODULE_ROADMAP.md](MODULE_ROADMAP.md) for long-term module priorities and strategic planning
 
 ## Scope
 
