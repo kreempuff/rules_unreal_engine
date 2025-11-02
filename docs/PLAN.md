@@ -8,13 +8,13 @@
 ## Scope
 
 **Total UE Modules:** 835 (across Engine/Source)
-**Modules Converted:** 5 (AtomicQueue, GuidelinesSupportLibrary, TraceLog, BuildSettings, Core)
-**Progress:** 0.6%
+**Modules Converted:** 10 (AtomicQueue, GSL, TraceLog, BuildSettings, Core, AutoRTFM, BLAKE3, OodleDataCompression, xxhash, PLCrashReporter)
+**Progress:** 1.2%
 
-**For Core Module to Build on Mac:**
-- Need: ~8 modules (core dependencies on Mac platform)
-- Have: 4/8 (50%!)
-- Remaining: AutoRTFM, BLAKE3, OodleDataCompression, xxhash
+**Core Module Status:**
+- All dependencies: ✅ Complete (8/8 on Mac)
+- Compilation: 21% (114/539 files)
+- Current blocker: FConsoleManager header resolution
 
 **Realistic Scope:**
 - Don't need all 835 modules
