@@ -342,12 +342,14 @@ When testing features that interact with Unreal Engine source code:
 ### Major Achievements ✅
 
 - ✅ Full UE compiler integration (C++20, all defines, platform-specific)
-- ✅ ue_modules/ repository architecture (4 modules)
+- ✅ **C/C++ file separation** (detects .c vs .cpp, applies correct flags)
+- ✅ ue_modules/ repository architecture (6 modules converted)
 - ✅ **Circular dependency SOLVED** (Core_headers splitting)
-- ✅ TraceLog compiles successfully
+- ✅ **Module dependency builds working** (Core → TraceLog → Core_headers)
+- ✅ TraceLog compiles (9/21 files, blocked on Objective-C++)
 - ✅ Persistent .test_ue/ test infrastructure
 - ✅ LOCAL_DEV flag for easy testing
-- ✅ Justfile for convenient commands
+- ✅ Justfile + TEST_MODULES filter for convenient testing
 
 ### Remaining Work
 

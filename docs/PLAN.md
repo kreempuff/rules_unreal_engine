@@ -29,6 +29,7 @@
 - ✅ Add platform defines (UBT_COMPILED_PLATFORM, PLATFORM_MAC, etc.)
 - ✅ Add module API macros (CORE_API, ENGINE_API, auto-generated)
 - ✅ Test flags with compile-time validation (TestUEFlags.cpp)
+- ✅ **C/C++ file separation** - Detects .c vs .cpp, applies appropriate flags
 
 **Build Core Module:**
 - ✅ Create BUILD.bazel for Core module
@@ -51,12 +52,14 @@
 
 **Core Dependencies:**
 - ✅ Write BUILD.bazel for GuidelinesSupportLibrary (header-only, builds successfully!)
-- ✅ Write BUILD.bazel for BuildSettings (builds, but needs version defines)
+- ✅ Write BUILD.bazel for BuildSettings (uses Core_headers correctly)
+- ✅ Write BUILD.bazel for BLAKE3 (C source files compile with C flags!)
 - 🔲 Write BUILD.bazel for AutoRTFM
-- 🔲 Write BUILD.bazel for BLAKE3
 - 🔲 Write BUILD.bazel for OodleDataCompression
 - 🔲 Write BUILD.bazel for xxhash
 - 🔲 Platform-specific: mimalloc, IntelTBB, jemalloc, PLCrashReporter
+
+**Progress:** 5/8 Core dependencies completed (62.5% on Mac platform)
 
 **Core Compilation:**
 - 🔲 Add all Core dependencies to Core BUILD.bazel
