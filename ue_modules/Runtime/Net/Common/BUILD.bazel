@@ -1,0 +1,21 @@
+"""Unreal Engine NetCommon module.
+
+Common networking types and utilities shared across networking modules.
+Provides base classes and interfaces for sockets, networking, and packet handling.
+
+Converted from: Engine/Source/Runtime/Net/Common/NetCommon.Build.cs
+"""
+
+load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
+
+ue_module(
+    name = "NetCommon",
+    module_type = "Runtime",
+
+    # From NetCommon.Build.cs: PublicDependencyModuleNames
+    public_deps = [
+        "//Engine/Source/Runtime/Core",
+    ],
+
+    visibility = ["//visibility:public"],
+)

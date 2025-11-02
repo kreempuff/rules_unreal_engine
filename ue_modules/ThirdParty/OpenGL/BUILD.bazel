@@ -1,0 +1,45 @@
+"""OpenGL third-party library (header-only + system frameworks).
+
+Provides OpenGL headers and links to platform-specific OpenGL libraries.
+Mac: OpenGL + QuartzCore frameworks
+Windows: opengl32.lib
+iOS: OpenGLES framework
+
+Converted from: Engine/Source/ThirdParty/OpenGL/OpenGL.Build.cs
+"""
+
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+# Header-only OpenGL library with platform-specific frameworks
+cc_library(
+    name = "OpenGL",
+
+    # Glob all headers (GL, EGL, KHR)
+    hdrs = glob([
+        "GL/**/*.h",
+        "EGL/**/*.h",
+        "KHR/**/*.h",
+    ]),
+
+    # Make accessible via <GL/gl.h> style includes
+    includes = ["."],
+
+    # Platform-specific frameworks and system libraries
+    linkopts = select({
+        "@platforms//os:macos": [
+            "-framework", "OpenGL",
+            "-framework", "QuartzCore",
+        ],
+        "@platforms//os:ios": [
+            "-framework", "OpenGLES",
+        ],
+        "@platforms//os:windows": [
+            "opengl32.lib",
+        ],
+        "//conditions:default": [],
+    }),
+
+    visibility = ["//visibility:public"],
+
+    tags = ["third-party", "opengl", "graphics"],
+)

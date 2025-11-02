@@ -1,0 +1,37 @@
+"""Unreal Engine Projects module.
+
+Handles .uproject and .uplugin files, plugin management, and project metadata.
+Core module for managing UE projects and plugins at runtime.
+
+Converted from: Engine/Source/Runtime/Projects/Projects.Build.cs
+"""
+
+load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
+
+ue_module(
+    name = "Projects",
+    module_type = "Runtime",
+
+    # From Projects.Build.cs: PublicDependencyModuleNames
+    public_deps = [
+        "//Engine/Source/Runtime/Core",
+        "//Engine/Source/Runtime/Json",
+    ],
+
+    # Game build configuration (non-editor, non-monolithic)
+    # Editor builds would require DesktopPlatform for plugin receipts
+    defines = [
+        "READ_TARGET_ENABLED_PLUGINS_FROM_RECEIPT=0",
+        "LOAD_PLUGINS_FOR_TARGET_PLATFORMS=0",
+    ],
+
+    # UBT injects enabled/disabled/build plugin lists at build time
+    # For our Bazel build, start with empty lists (no plugins enabled/disabled/built)
+    local_defines = [
+        "UBT_TARGET_ENABLED_PLUGINS=",
+        "UBT_TARGET_DISABLED_PLUGINS=",
+        "UBT_TARGET_BUILD_PLUGINS=",
+    ],
+
+    visibility = ["//visibility:public"],
+)

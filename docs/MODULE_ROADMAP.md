@@ -19,13 +19,13 @@
 
 ## P0: Critical Path
 
-### Core ✅ (In Progress - 21% complete)
+### Core ✅ (98.6% complete)
 - **Why:** Foundation of everything in UE
-- **Complexity:** Hard (539 files, platform-specific, UHT dependencies)
-- **Dependencies:** TraceLog, BuildSettings, AtomicQueue, GSL, BLAKE3, AutoRTFM, OodleDataCompression, xxhash, PLCrashReporter, mimalloc, IntelTBB
+- **Complexity:** Hard (514 files, platform-specific, module dependencies)
+- **Dependencies:** TraceLog, BuildSettings, AtomicQueue, GSL, BLAKE3, AutoRTFM, OodleDataCompression, xxhash, Launch (minimal)
 - **Server:** ✅ Required
-- **Status:** 8/8 Mac deps done, 114/539 files compiling
-- **Blockers:** FConsoleManager header resolution, missing third-party libs
+- **Status:** 507/514 files compiling, libCore.a (44 MB)
+- **Blockers:** 7 files need ImageCore, TargetPlatform, DerivedDataCache, IntelTBB modules
 
 ### UnrealHeaderTool (UHT)
 - **Why:** Generates reflection code (.generated.h/.cpp) for UCLASS/UPROPERTY
@@ -41,17 +41,28 @@
 - **Server:** ✅ Required
 - **Blocker:** Requires UHT integration complete
 
-### Projects
+### Projects ✅ (100% complete)
 - **Why:** Plugin system, .uproject parsing, module discovery
 - **Complexity:** Simple (mostly JSON parsing)
 - **Dependencies:** Core, Json
 - **Server:** ✅ Required
+- **Status:** 14/14 files compiling, libProjects.a (4.6 MB)
+- **Build time:** 3.5 seconds
 
-### Json (ThirdParty)
+### Json ✅ (100% complete)
 - **Why:** Configuration, data serialization, used everywhere
-- **Complexity:** Simple (third-party library)
-- **Dependencies:** Core
+- **Complexity:** Simple (JSON parsing with RapidJSON)
+- **Dependencies:** Core, RapidJSON (header-only)
 - **Server:** ✅ Required
+- **Status:** 9/9 files compiling, libJson.a (1.7 MB)
+- **Build time:** 2.2 seconds
+
+### RapidJSON ✅ (ThirdParty - header-only)
+- **Why:** Fast JSON parser/generator used by Json module
+- **Complexity:** Trivial (header-only third-party library)
+- **Dependencies:** None
+- **Server:** ✅ Required
+- **Status:** Header-only library (v1.1.0)
 
 ---
 
@@ -69,25 +80,31 @@
 - **Dependencies:** Core, TraceLog
 - **Server:** ✅ Required (critical for networking)
 
-### NetCommon
+### NetCommon ✅ (100% complete)
 - **Why:** Shared networking utilities
 - **Complexity:** Simple
 - **Dependencies:** Core
 - **Server:** ✅ Required
+- **Status:** 1/1 file, libNetCommon.a (5 KB)
+- **Build time:** 1.3 seconds
 
-### Sockets
+### Sockets ✅ (100% complete - Mac platform)
 - **Why:** Low-level TCP/UDP socket primitives
 - **Complexity:** Medium (platform-specific implementations)
 - **Dependencies:** Core, NetCommon
 - **Server:** ✅ Required
 - **Priority:** **HIGH** for multiplayer
+- **Status:** 10/17 files (Mac + common), libSockets.a (693 KB)
+- **Build time:** 2.0 seconds
 
-### Networking
+### Networking ✅ (100% complete)
 - **Why:** Connection management, packet handling
-- **Complexity:** Medium
+- **Complexity:** Medium (IPv4 addressing, Steam endpoints)
 - **Dependencies:** Core, Sockets
 - **Server:** ✅ Required
 - **Priority:** **HIGH** for multiplayer
+- **Status:** 7/7 files, libNetworking.a (51 KB)
+- **Build time:** 1.7 seconds
 
 ### NetCore
 - **Why:** High-level networking types and interfaces
@@ -95,6 +112,21 @@
 - **Dependencies:** Core, CoreUObject, TraceLog, NetCommon
 - **Server:** ✅ Required
 - **Priority:** **HIGH** for multiplayer
+
+### SandboxFile ✅ (100% complete)
+- **Why:** File I/O abstraction with security sandboxing
+- **Complexity:** Simple
+- **Dependencies:** Core
+- **Server:** ✅ Required
+- **Status:** 1/1 file, libSandboxFile.a (167 KB)
+- **Build time:** 1.5 seconds
+
+### OpenGL ✅ (ThirdParty - header-only)
+- **Why:** OpenGL headers and platform frameworks
+- **Complexity:** Trivial (header-only)
+- **Dependencies:** None
+- **Server:** ❌ Not needed (graphics library)
+- **Status:** Header-only + Mac frameworks (OpenGL, QuartzCore)
 
 ### PakFile
 - **Why:** Archive file system for packaged games
@@ -108,11 +140,12 @@
 - **Dependencies:** Core
 - **Server:** ✅ Required
 
-### ApplicationCore
+### ApplicationCore ⚠️ (Blocked)
 - **Why:** Platform abstraction, windowing, input system foundation
 - **Complexity:** Medium (platform-specific)
-- **Dependencies:** Core, RHI (include only)
+- **Dependencies:** Core, InputDevice, Analytics, SynthBenchmark
 - **Server:** ⚠️ Partial (headless mode still needs some platform services)
+- **Blocker:** Needs InputDevice module for *Application.cpp files
 
 ### InputCore
 - **Why:** Input event system (keyboard, mouse, gamepad)

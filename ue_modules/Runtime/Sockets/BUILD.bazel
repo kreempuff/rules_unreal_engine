@@ -1,0 +1,27 @@
+"""Unreal Engine Sockets module.
+
+Low-level TCP/UDP socket primitives with platform-specific implementations.
+Foundation for all UE networking (BSD sockets on Unix/Mac, Winsock on Windows).
+
+Converted from: Engine/Source/Runtime/Sockets/Sockets.Build.cs
+"""
+
+load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
+
+ue_module(
+    name = "Sockets",
+    module_type = "Runtime",
+
+    # From Sockets.Build.cs: PrivateDependencyModuleNames
+    private_deps = [
+        "//Engine/Source/Runtime/Core",
+        "//Engine/Source/Runtime/Net/Common:NetCommon",
+    ],
+
+    # From Sockets.Build.cs: PublicDefinitions
+    defines = [
+        "SOCKETS_PACKAGE=1",
+    ],
+
+    visibility = ["//visibility:public"],
+)

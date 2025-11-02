@@ -1,0 +1,21 @@
+"""Unreal Engine SandboxFile module.
+
+File I/O abstraction layer for sandboxed file access.
+Provides platform-independent file operations with security sandboxing.
+
+Converted from: Engine/Source/Runtime/SandboxFile/SandboxFile.Build.cs
+"""
+
+load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
+
+ue_module(
+    name = "SandboxFile",
+    module_type = "Runtime",
+
+    # From SandboxFile.Build.cs: PrivateDependencyModuleNames
+    private_deps = [
+        "//Engine/Source/Runtime/Core",
+    ],
+
+    visibility = ["//visibility:public"],
+)
