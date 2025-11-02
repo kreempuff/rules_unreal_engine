@@ -14,71 +14,24 @@ Converted from: Engine/Source/Runtime/Core/Core.Build.cs
 load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
-# Core headers-only target (breaks circular dependency with TraceLog)
-cc_library(
-    name = "Core_headers",
-    hdrs = glob(
-        [
-            "Public/**/*.h",
-            "Public/**/*.hpp",
-            "Public/**/*.inl",
-            "Internal/**/*.h",
-            "Private/**/*.h",
-        ],
-        allow_empty = True,
-    ),
-    includes = ["Public", "Internal", "Private"],
-    defines = [
-        "UE_BUILD_DEVELOPMENT=1",
-        "UE_BUILD_DEBUG=0",
-        "UE_BUILD_TEST=0",
-        "UE_BUILD_SHIPPING=0",
-        "WITH_EDITOR=0",
-        "WITH_ENGINE=1",
-        "WITH_UNREAL_DEVELOPER_TOOLS=0",
-        "WITH_PLUGIN_SUPPORT=1",
-        "IS_MONOLITHIC=0",
-        "IS_PROGRAM=0",
-        "CORE_API=",
-    ] + select({
-        "@platforms//os:macos": [
-            "UBT_COMPILED_PLATFORM=Mac",
-            "PLATFORM_MAC=1",
-            "PLATFORM_APPLE=1",
-        ],
-        "@platforms//os:linux": [
-            "UBT_COMPILED_PLATFORM=Linux",
-            "PLATFORM_LINUX=1",
-            "PLATFORM_UNIX=1",
-        ],
-        "//conditions:default": [],
-    }),
-    visibility = ["//visibility:public"],
-)
-
-# Full Core module (implementation)
+# Core module
+# Note: Core_headers is now auto-created by ue_module (all modules get _headers targets)
 ue_module(
     name = "Core",
     module_type = "Runtime",
 
     # Unity build pattern: lz4.cpp is included by lz4hc.cpp, not compiled separately
-    # Temporarily exclude problematic files
+    # Exclude files requiring other modules to be fully built (7 remaining)
     exclude_srcs = [
         "Private/Compression/lz4.cpp",  # Unity build: included by lz4hc.cpp
         "Private/HAL/ConsoleManager.cpp",  # TODO: Fix FConsoleManager header visibility
-        "Private/HAL/MallocTBB.cpp",  # TODO: Add IntelTBB dependency
+        "Private/HAL/MallocTBB.cpp",  # TODO: Build IntelTBB module
         "Private/HAL/MallocJemalloc.cpp",  # Linux-specific allocator
         "Private/HAL/MallocMimalloc.cpp",  # Windows/Linux allocator
-        # Files needing Runtime/Launch/Resources/Version.h
-        "Private/Misc/App.cpp",
-        "Private/Misc/ConfigManifest.cpp",
-        "Private/Misc/EngineVersion.cpp",
-        "Private/FramePro/FrameProProfiler.cpp",
-        # Other module dependencies
-        "Private/Misc/CoreMisc.cpp",  # TODO: Needs DerivedDataCache module
-        "Private/Misc/ObjectThumbnail.cpp",  # TODO: Needs ImageCore module
-        "Private/Serialization/Archive.cpp",  # TODO: Needs TargetPlatform module
-        "Private/Serialization/MemoryImage.cpp",  # TODO: Needs TargetPlatform module
+        "Private/Misc/CoreMisc.cpp",  # TODO: Build DerivedDataCache module (needs DERIVEDDATACACHE_API)
+        "Private/Misc/ObjectThumbnail.cpp",  # TODO: Build ImageCore module (needs IMAGECORE_API)
+        "Private/Serialization/Archive.cpp",  # TODO: Build TargetPlatform module (needs TARGETPLATFORM_API)
+        "Private/Serialization/MemoryImage.cpp",  # TODO: Build TargetPlatform module
     ],
     additional_hdrs = ["Private/Compression/lz4.cpp"],  # Unity build: included by lz4hc.cpp
 
@@ -95,6 +48,7 @@ ue_module(
     private_deps = [
         "//Engine/Source/Runtime/BuildSettings",
         "//Engine/Source/Runtime/AutoRTFM",
+        "//Engine/Source/Runtime/Launch",  # Minimal header-only (just Version.h)
         "//Engine/Source/ThirdParty/BLAKE3",
         "//Engine/Source/Runtime/OodleDataCompression",
         "//Engine/Source/ThirdParty/xxhash",

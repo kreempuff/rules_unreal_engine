@@ -1,0 +1,22 @@
+# Launch Module (minimal - header-only for Version.h)
+# Full Launch module has massive dependencies (Engine, Slate, RHI, etc.)
+# For now, just expose Resources/Version.h for Core files that need it
+# Location: Engine/Source/Runtime/Launch
+
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+# Minimal header-only target for Version.h
+# Full Launch module will be built later when dependencies exist
+cc_library(
+    name = "Launch",
+
+    # Only expose Resources/Version.h for now
+    hdrs = ["Resources/Version.h"],
+
+    # Make accessible via "Runtime/Launch/Resources/Version.h" include style
+    includes = ["../.."],  # Engine/Source
+
+    visibility = ["//visibility:public"],
+
+    tags = ["launch", "minimal", "header-only"],
+)

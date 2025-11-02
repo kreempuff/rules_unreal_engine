@@ -211,6 +211,7 @@ def ue_module(
         "WITH_SERVER_CODE=1",             # Include server code (for dedicated servers)
         "IS_MONOLITHIC=0",                # Modular build
         "IS_PROGRAM=0",                   # Not a standalone program
+        "UE_GAME=1",                      # Game build (not editor/server/client/program)
         "TBBMALLOC_ENABLED=0",            # Disable Intel TBB malloc (platform-specific)
         "USE_MALLOC_BINNED2=1",           # Use Binned2 allocator (UE default)
         "USE_MALLOC_BINNED3=0",           # Binned3 experimental allocator OFF
@@ -334,6 +335,17 @@ def ue_module(
         "ue_module",
         "ue_module_type:" + module_type,
     ]
+
+    # Create headers-only target (for circular dependencies and faster compiles)
+    # Every ue_module automatically gets a {name}_headers target
+    cc_library(
+        name = name + "_headers",
+        hdrs = hdrs,
+        includes = includes,
+        defines = all_defines,  # Public defines (no local_defines - those are private)
+        visibility = visibility,
+        tags = tags + ["headers_only"],
+    )
 
     # Create the main cc_library (C++ files only, C files in separate library)
     cc_library(

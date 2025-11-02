@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bazel cquery:*)",
+      "Bash(bazel build:*)",
+      "Bash(just install:*)",
+      "Bash(bazel test:*)",
+      "Bash(just test-all:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
