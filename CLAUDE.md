@@ -361,21 +361,71 @@ See **[docs/PLAN.md](docs/PLAN.md)** for detailed Phase 1.3 task list.
 - Get Core to fully compile
 - UHT integration (code generation)
 
+### Note on Precompiled Dependencies
+
+Some UE modules (e.g., OodleDataCompression) currently link against precompiled libraries (`.a`, `.lib` files) provided by Epic or third-party vendors. While these work for now, the long-term goal is to compile them from source with Bazel for:
+- Full hermetic builds
+- Cross-platform consistency
+- Better caching and incremental builds
+- Elimination of binary blob dependencies
+
+**Action item:** Track precompiled modules as we encounter them for future conversion to source builds.
+
 ### Quick Start
 
+**IMPORTANT: Always use the `.test_ue/` test repository for development work. Never modify the main UE installation directly.**
+
 ```bash
+# Setup test UE repository (first time only)
+just setup-test-ue         # Clones from /Users/kareemmarch/Projects/UnrealEngine
+
+# Install BUILD files to test repo
+just install .test_ue/UnrealEngine
+
+# Build UE modules in test repo
+cd .test_ue/UnrealEngine
+bazel build //Engine/Source/ThirdParty/AtomicQueue  # ✅ Works!
+bazel build //Engine/Source/Runtime/TraceLog        # ✅ Compiles (needs LZ4)
+bazel build //Engine/Source/Runtime/Core            # 🔨 In progress
+
+# Clean test repo and start fresh
+just clean-test-ue
+just setup-test-ue
+
 # Run tests
 just test-all              # Fast tests
 just test-all-slow         # Including E2E
-
-# Install BUILD files
-just install /path/to/UE
-
-# Build UE modules
-cd /path/to/UE
-bazel build //Engine/Source/ThirdParty/AtomicQueue  # ✅ Works!
-bazel build //Engine/Source/Runtime/TraceLog        # ✅ Compiles (needs LZ4)
 ```
+
+### Development Workflow
+
+**When starting new work, always follow this process:**
+
+```bash
+# 1. Hard reset test UE directory to clean state
+just reset-test-ue         # Removes all uncommitted changes and BUILD files
+
+# 2. Create new feature branch
+git checkout main
+git pull
+git checkout -b feat/phase1.3-descriptive-name
+
+# 3. Install BUILD files and start work
+just install .test_ue/UnrealEngine
+cd .test_ue/UnrealEngine
+bazel build //Engine/Source/Runtime/Core
+```
+
+**Why this workflow?**
+- **Clean state**: Prevents cross-contamination between work sessions
+- **Isolated changes**: Each feature gets its own branch for clean git history
+- **Easy rollback**: Failed experiments can be discarded without affecting other work
+- **Consistent testing**: Always start from a known-good baseline
+
+**Commands:**
+- `just reset-test-ue` - Git clean + hard reset (keeps the clone)
+- `just clean-test-ue` - Deletes entire test repo (for full reset)
+- `just setup-test-ue` - Initial clone from main UE installation
 
 ### References
 

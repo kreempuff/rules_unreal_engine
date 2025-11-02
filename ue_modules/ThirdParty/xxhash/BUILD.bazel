@@ -1,0 +1,33 @@
+# xxhash ThirdParty Module
+# Extremely fast hash algorithm
+# Location: Engine/Source/ThirdParty/xxhash
+# Original: xxhash.Build.cs
+
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "xxhash",
+
+    # xxhash is header-only in UE (Build.cs only adds include path)
+    # Implementation can be included via XXH_INLINE_ALL or XXH_STATIC_LINKING_ONLY
+    hdrs = [
+        "xxhash.h",
+        "xxh3.h",
+        "xxh_x86dispatch.h",
+    ],
+
+    # No srcs - header-only library
+    # Users include xxhash.h and can optionally define:
+    # - XXH_INLINE_ALL for inline implementation
+    # - XXH_STATIC_LINKING_ONLY for static linking
+    # - Or compile xxhash.c separately if needed
+
+    # From xxhash.Build.cs: PublicSystemIncludePaths.Add(ModuleDirectory)
+    # Make headers available from the root of this module
+    includes = ["."],
+
+    visibility = ["//visibility:public"],
+
+    # Mark as external third-party code
+    tags = ["third_party", "xxhash"],
+)

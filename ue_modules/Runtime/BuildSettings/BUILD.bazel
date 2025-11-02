@@ -17,13 +17,33 @@ ue_module(
     public_deps = ["//Engine/Source/Runtime/Core:Core_headers"],
 
     # From BuildSettings.Build.cs
+    # Dynamic build-time defines (UBT generates these at compile time)
     local_defines = [
         "SUPPRESS_PER_MODULE_INLINE_FILE",
-        # TODO: Add dynamic defines from BuildSettings.Build.cs:
-        # - ENGINE_VERSION_MAJOR/MINOR/HOTFIX
-        # - CURRENT_CHANGELIST
-        # - BRANCH_NAME
-        # - BUILD_VERSION
+
+        # Build metadata (stub values for now)
+        # TODO: Generate these dynamically from git/version files
+        'BUILD_SOURCE_URL=\\"https://github.com/EpicGames/UnrealEngine\\"',
+        'BUILD_USER=\\"bazel\\"',
+        'BUILD_USERDOMAINNAME=\\"localhost\\"',
+        'BUILD_MACHINENAME=\\"bazel_build\\"',
+
+        # Engine version (stub values for UE 5.4)
+        # TODO: Extract from Engine/Source/Runtime/Launch/Resources/Version.h
+        "ENGINE_VERSION_MAJOR=5",
+        "ENGINE_VERSION_MINOR=4",
+        "ENGINE_VERSION_PATCH=0",
+        "ENGINE_VERSION_HOTFIX=0",
+        'ENGINE_VERSION=\\"5.4.0\\"',
+
+        # Build changelist
+        "CURRENT_CHANGELIST=0",
+        'BRANCH_NAME=\\"main\\"',
+        'BUILD_VERSION=\\"5.4.0-bazel\\"',
+
+        # VFS and allocator settings
+        "UE_PERSISTENT_ALLOCATOR_RESERVE_SIZE=0",
+        'UE_VFS_PATHS=\\"\\"',
     ],
 
     visibility = ["//visibility:public"],

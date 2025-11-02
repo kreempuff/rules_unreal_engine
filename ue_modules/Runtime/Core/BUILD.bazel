@@ -61,8 +61,8 @@ ue_module(
     name = "Core",
     module_type = "Runtime",
 
-    # Don't auto-discover headers - use Core_headers instead
-    hdrs = [],
+    # Headers are auto-discovered (needed for C files in Core_c library)
+    # Note: Headers are also exported via Core_headers dependency
 
     # From Core.Build.cs: PublicDependencyModuleNames
     public_deps = [
@@ -74,13 +74,22 @@ ue_module(
 
     # From Core.Build.cs: PrivateDependencyModuleNames
     private_deps = [
-        # TODO: Add from Core.Build.cs:
-        # - BuildSettings
-        # - AutoRTFM
-        # - BLAKE3
-        # - OodleDataCompression
-        # - xxhash
-        # Platform-specific: mimalloc, IntelTBB, jemalloc, etc.
+        "//Engine/Source/Runtime/BuildSettings",
+        "//Engine/Source/Runtime/AutoRTFM",
+        "//Engine/Source/ThirdParty/BLAKE3",
+        "//Engine/Source/Runtime/OodleDataCompression",
+        "//Engine/Source/ThirdParty/xxhash",
+        # TODO: Platform-specific dependencies:
+        # - mimalloc (Windows/Linux allocator)
+        # - IntelTBB (threading library)
+        # - jemalloc (alternative allocator)
+        # - PLCrashReporter (Mac crash reporting)
+    ],
+
+    # Additional include paths for subdirectories
+    # MiMalloc.c needs to find IncludeMiMalloc.h in same directory
+    private_includes = [
+        "Private/Thirdparty",
     ],
 
     visibility = ["//visibility:public"],

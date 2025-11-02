@@ -1,0 +1,28 @@
+# AutoRTFM Module
+# Auto-Retrying Transactional Memory system
+# Location: Engine/Source/Runtime/AutoRTFM
+# Original: AutoRTFM.Build.cs
+
+load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
+
+ue_module(
+    name = "AutoRTFM",
+    module_type = "Runtime",
+
+    # Header-only dependency on Core for HAL/Platform.h (DLLEXPORT/DLLIMPORT)
+    # Uses PrivateIncludePathModuleNames, not a link dependency
+    private_deps = [
+        "//Engine/Source/Runtime/Core:Core_headers",
+    ],
+
+    # Special define: This module doesn't use Core's operator new/delete overloads
+    defines = [
+        "SUPPRESS_PER_MODULE_INLINE_FILE",
+    ],
+
+    # Note: AutoRTFM.Build.cs has extensive warning settings (all warnings as errors)
+    # These are applied via CppCompileWarningSettings in UBT
+    # TODO: Add equivalent Bazel copts if needed for strict builds
+
+    visibility = ["//visibility:public"],
+)
