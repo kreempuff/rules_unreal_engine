@@ -78,18 +78,45 @@ Files requiring InputDevice:
 **Workaround attempted:** Excluding *Application.cpp files won't work - these are the core entry points
 **Resolution:** Build InputDevice module first
 
+## The CoreUObject Wall
+
+**We've reached a major milestone:** We've built all modules possible without CoreUObject!
+
+**Modules blocked by CoreUObject:**
+- JsonUtilities (needs Core + CoreUObject + Json)
+- Serialization (needs Core + CoreUObject + Json + Cbor)
+- PakFile (needs Core + CoreUObject + TraceLog + RSA)
+- Messaging (needs Core + CoreUObject)
+- MessagingCommon (needs Core + CoreUObject)
+- NetCore (needs Core + CoreUObject + TraceLog + NetCommon)
+- InputDevice (likely needs CoreUObject)
+- ApplicationCore → InputDevice → CoreUObject
+- ~90% of remaining modules need CoreUObject
+
+**What CoreUObject provides:**
+- UObject reflection system (UCLASS, UPROPERTY, UFUNCTION)
+- Garbage collection
+- Serialization infrastructure
+- Blueprint integration
+- Asset system foundation
+
+**Why it's blocked:**
+- CoreUObject needs UnrealHeaderTool (UHT) for code generation
+- UHT generates .generated.h/.cpp files from reflection macros
+- Chicken-egg problem: UHT needs modules, modules need UHT-generated code
+
 ## Summary
 
-**Modules we can build now without blockers:**
-- PakFile (needs RSA third-party)
-- RSA third-party library
-- JsonUtilities (needs Core + Json - both ready!)
-- Serialization (needs Core + TraceLog - both ready!)
+**Modules successfully built (17 total):**
+✅ Core + 9 dependencies (TraceLog, BuildSettings, Launch, etc.)
+✅ Json, RapidJSON, Projects
+✅ NetCommon, Sockets, Networking
+✅ SandboxFile, OpenGL
 
-**Modules blocked by dependencies:**
-- ApplicationCore → InputDevice
-- NetCore → CoreUObject → UHT
-- Most P2/P3 modules → CoreUObject → UHT
+**Next major milestone: UHT Integration**
+- This is Phase 1.3 weeks 5-8 in the plan
+- Required to unlock CoreUObject
+- Required to unlock 90% of remaining modules
 
 **Strategy:**
 1. Build remaining P1 modules with simple dependencies (JsonUtilities, Serialization, PakFile/RSA)
