@@ -1,0 +1,22 @@
+"""Unreal Engine Networking module.
+
+Connection management, packet handling, and high-level networking primitives.
+Provides IPv4 addressing, Steam endpoint support, and network utilities.
+
+Converted from: Engine/Source/Runtime/Networking/Networking.Build.cs
+"""
+
+load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
+
+ue_module(
+    name = "Networking",
+    module_type = "Runtime",
+
+    # From Networking.Build.cs: PublicDependencyModuleNames
+    public_deps = [
+        "//Engine/Source/Runtime/Core",
+        "//Engine/Source/Runtime/Sockets",
+    ],
+
+    visibility = ["//visibility:public"],
+)
