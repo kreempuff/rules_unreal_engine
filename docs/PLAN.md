@@ -95,11 +95,66 @@
 
 ### Validation
 
-- 🔲 Compare Bazel vs UBT output (symbols, binary format)
-  - Build Core with UBT
-  - Build Core with Bazel
-  - Compare with nm -g (symbol exports)
-  - Verify compatibility
+**IMPORTANT:** Successful compilation ≠ working code. Multiple failure modes exist even after clean builds.
+
+#### Known Risks
+
+| Risk | Severity | Detection Method | Mitigation |
+|------|----------|------------------|------------|
+| **Missing/wrong defines** | HIGH | Symbol comparison, runtime testing | Extract from UE headers/Build.cs dynamically |
+| **Linking failures** | HIGH | Link minimal executable | Resolve missing symbols, add platform libs |
+| **UHT missing** | CRITICAL | CoreUObject compilation | Implement UHT integration (Phase 1.3 weeks 5-8) |
+| **Precompiled ABI mismatch** | MEDIUM | Runtime crashes, weird bugs | Build from source, match Xcode versions |
+| **Module init order** | MEDIUM | Startup crashes | Match UBT link order exactly |
+| **Platform services** | MEDIUM | Missing functionality | Add frameworks, test on target platforms |
+
+#### Validation Steps
+
+**Phase 1.3 (Current):**
+- 🔲 Symbol comparison with UBT build
+  - Build Core with UBT: `UnrealBuildTool Core Mac Development`
+  - Build Core with Bazel: `bazel build //Engine/Source/Runtime/Core`
+  - Compare symbols: `nm -g bazel-bin/.../libCore.a > bazel-symbols.txt`
+  - Verify compatibility: `diff bazel-symbols.txt ubt-symbols.txt`
+  - **Expected:** Identical or very similar symbol sets
+
+**Phase 1.4 (Link Testing):**
+- 🔲 Link a minimal program
+  - Create minimal `main.cpp` using Core APIs
+  - Link with Bazel: `bazel build //test:minimal_program`
+  - Run: `./bazel-bin/test/minimal_program`
+  - **Expected:** No crashes, basic APIs work (FString, TArray, etc.)
+
+**Phase 2 (Integration Testing):**
+- 🔲 Build UnrealEditor
+  - All modules compile
+  - Link into UnrealEditor executable
+  - Launch and test basic functionality
+  - **Expected:** Editor launches, can open projects
+
+**Phase 3 (End-to-End):**
+- 🔲 Cook and run a game
+  - Full BuildCookRun workflow
+  - Test on Mac client + Linux server (multiplayer use case)
+  - **Expected:** Game runs, networking works, identical behavior to UBT builds
+
+#### Specific Concerns for Multiplayer (Mac Dev + Linux Server)
+
+1. **Cross-platform determinism**
+   - Physics simulation must be identical Mac ↔ Linux
+   - RNG seeding must match
+   - Floating-point behavior must match
+   - **Test:** Record replay on Mac, play on Linux (should be identical)
+
+2. **Networking modules untested**
+   - Sockets, Networking, OnlineSubsystem not built yet
+   - Server-specific modules unknown
+   - **Test:** Build dedicated server, connect Mac client
+
+3. **Linux server build untested**
+   - Only building on Mac so far
+   - Linux-specific code paths unverified
+   - **Test:** Cross-compile or build on Linux CI
 
 ## Precompiled Dependencies (Future Work)
 
