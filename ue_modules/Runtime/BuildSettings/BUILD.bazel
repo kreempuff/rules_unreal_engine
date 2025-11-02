@@ -13,8 +13,8 @@ ue_module(
     module_type = "Runtime",
 
     # From BuildSettings.Build.cs: PrivateIncludePathModuleNames.Add("Core")
-    # Needs Core headers but doesn't link
-    public_deps = ["//Engine/Source/Runtime/Core"],
+    # Needs Core headers but doesn't link (header-only dependency)
+    public_deps = ["//Engine/Source/Runtime/Core:Core_headers"],
 
     # From BuildSettings.Build.cs
     local_defines = [

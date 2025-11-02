@@ -34,8 +34,8 @@
   - Result: TraceLog compiles 9/21 files (blocked on Objective-C++ for Mac)
 
 **Core Dependencies:**
-- 🔲 Write BUILD.bazel for GuidelinesSupportLibrary
-- 🔲 Write BUILD.bazel for BuildSettings
+- ✅ Write BUILD.bazel for GuidelinesSupportLibrary (header-only, builds successfully!)
+- ✅ Write BUILD.bazel for BuildSettings (builds, but needs version defines)
 - 🔲 Write BUILD.bazel for AutoRTFM
 - 🔲 Write BUILD.bazel for BLAKE3
 - 🔲 Write BUILD.bazel for OodleDataCompression
