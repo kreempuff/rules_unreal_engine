@@ -10,6 +10,7 @@ def ue_module(
         module_type = "Runtime",
         srcs = None,
         hdrs = None,
+        exclude_srcs = [],
         public_deps = [],
         private_deps = [],
         public_includes = [],
@@ -75,17 +76,22 @@ def ue_module(
 
     # Default source/header discovery with platform filtering
     if srcs == None:
-        # Common sources (exclude platform-specific directories)
+        # Build exclude list: platform dirs + user excludes
+        base_excludes = [
+            "Private/Android/**", "Private/Windows/**", "Private/Linux/**",
+            "Private/Unix/**", "Private/IOS/**", "Private/Mac/**", "Private/Apple/**"
+        ]
+        all_excludes = base_excludes + exclude_srcs
+
+        # Common sources (exclude platform-specific directories + user exclusions)
         common_cpp = native.glob(
             ["Private/**/*.cpp", "Private/**/*.mm"],
-            exclude = ["Private/Android/**", "Private/Windows/**", "Private/Linux/**",
-                      "Private/Unix/**", "Private/IOS/**", "Private/Mac/**", "Private/Apple/**"],
+            exclude = all_excludes,
             allow_empty = True,
         )
         common_c = native.glob(
             ["Private/**/*.c"],
-            exclude = ["Private/Android/**", "Private/Windows/**", "Private/Linux/**",
-                      "Private/Unix/**", "Private/IOS/**", "Private/Mac/**", "Private/Apple/**"],
+            exclude = all_excludes,
             allow_empty = True,
         )
 
@@ -153,15 +159,32 @@ def ue_module(
             allow_empty = True,
         )
 
-    # UE default compiler flags (from UBT ClangToolChain.cs)
-    ue_default_copts = [
-        "-std=c++20",                      # C++20 standard (UE default)
-        "-fno-exceptions",                 # Exceptions OFF (UE default)
-        "-fno-rtti",                       # RTTI OFF (UE default)
-        "-Wall",                           # Enable all warnings
-        # Note: -fdiagnostics-absolute-paths is Clang-only, not supported by GCC
-        # TODO: Add conditionally for Clang toolchain
-    ]
+    # UE default compiler flags (from UBT ClangToolChain.cs and AppleToolChain.cs)
+    # On Apple platforms, .cpp files are compiled as Objective-C++ to support Foundation headers
+    ue_default_copts = select({
+        "@platforms//os:macos": [
+            "-x", "objective-c++",        # Compile as Objective-C++ (AppleToolChain.cs:455)
+            "-std=c++20",                  # C++20 standard
+            "-stdlib=libc++",              # Use libc++ (AppleToolChain.cs:457)
+            "-fno-exceptions",             # Exceptions OFF
+            "-fno-rtti",                   # RTTI OFF
+            "-Wall",                       # Enable all warnings
+        ],
+        "@platforms//os:ios": [
+            "-x", "objective-c++",        # Compile as Objective-C++ (iOS also uses AppleToolChain)
+            "-std=c++20",
+            "-stdlib=libc++",
+            "-fno-exceptions",
+            "-fno-rtti",
+            "-Wall",
+        ],
+        "//conditions:default": [
+            "-std=c++20",                  # Regular C++ for non-Apple platforms
+            "-fno-exceptions",
+            "-fno-rtti",
+            "-Wall",
+        ],
+    })
 
     # UE build configuration defines (required by Core/Misc/Build.h)
     # TODO: Make these configurable via Bazel config_setting
@@ -174,6 +197,7 @@ def ue_module(
         "WITH_ENGINE=1",                  # Compiling with engine
         "WITH_UNREAL_DEVELOPER_TOOLS=0",
         "WITH_PLUGIN_SUPPORT=1",
+        "WITH_SERVER_CODE=1",             # Include server code (for dedicated servers)
         "IS_MONOLITHIC=0",                # Modular build
         "IS_PROGRAM=0",                   # Not a standalone program
     ]

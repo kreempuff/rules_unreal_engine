@@ -35,9 +35,16 @@ ue_module(
         "ENGINE_VERSION_PATCH=0",
         "ENGINE_VERSION_HOTFIX=0",
         'ENGINE_VERSION=\\"5.4.0\\"',
+        'ENGINE_VERSION_STRING=\\"5.4.0-bazel\\"',
+
+        # Build type flags
+        "ENGINE_IS_LICENSEE_VERSION=0",
+        "ENGINE_IS_PROMOTED_BUILD=0",
+        "UE_WITH_DEBUG_INFO=0",
 
         # Build changelist
         "CURRENT_CHANGELIST=0",
+        "COMPATIBLE_CHANGELIST=0",
         'BRANCH_NAME=\\"main\\"',
         'BUILD_VERSION=\\"5.4.0-bazel\\"',
 

@@ -61,8 +61,18 @@ ue_module(
     name = "Core",
     module_type = "Runtime",
 
-    # Headers are auto-discovered (needed for C files in Core_c library)
-    # Note: Headers are also exported via Core_headers dependency
+    # Unity build pattern: lz4.cpp is included by lz4hc.cpp, not compiled separately
+    exclude_srcs = ["Private/Compression/lz4.cpp"],
+
+    # Add lz4.cpp as header so lz4hc.cpp can include it
+    hdrs = glob([
+        "Public/**/*.h",
+        "Public/**/*.inl",
+        "Internal/**/*.h",
+        "Private/**/*.h",
+        "Private/**/*.inl",
+        "Private/Compression/lz4.cpp",  # Unity build: included by lz4hc.cpp
+    ], allow_empty = True),
 
     # From Core.Build.cs: PublicDependencyModuleNames
     public_deps = [
@@ -79,11 +89,11 @@ ue_module(
         "//Engine/Source/ThirdParty/BLAKE3",
         "//Engine/Source/Runtime/OodleDataCompression",
         "//Engine/Source/ThirdParty/xxhash",
+        "//Engine/Source/ThirdParty/PLCrashReporter",  # Mac crash reporting (Mac only via target_compatible_with)
         # TODO: Platform-specific dependencies:
         # - mimalloc (Windows/Linux allocator)
         # - IntelTBB (threading library)
         # - jemalloc (alternative allocator)
-        # - PLCrashReporter (Mac crash reporting)
     ],
 
     # Additional include paths for subdirectories
