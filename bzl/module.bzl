@@ -77,10 +77,14 @@ def ue_module(
 
     # Default source/header discovery with platform filtering
     if srcs == None:
-        # Build exclude list: platform dirs + user excludes
+        # Build exclude list: platform dirs (including subdirs) + user excludes
         base_excludes = [
             "Private/Android/**", "Private/Windows/**", "Private/Linux/**",
-            "Private/Unix/**", "Private/IOS/**", "Private/Mac/**", "Private/Apple/**"
+            "Private/Unix/**", "Private/IOS/**", "Private/Mac/**", "Private/Apple/**",
+            # Also exclude platform subdirectories (e.g., Private/ProfilingDebugging/Unix/)
+            "Private/**/Android/**", "Private/**/Windows/**", "Private/**/Linux/**",
+            "Private/**/Unix/**", "Private/**/IOS/**", "Private/**/Mac/**", "Private/**/Apple/**",
+            "Private/**/Microsoft/**",  # Windows-specific (e.g., Private/ProfilingDebugging/Microsoft/)
         ]
         all_excludes = base_excludes + exclude_srcs
 
@@ -171,18 +175,18 @@ def ue_module(
             "-std=c++20",                  # C++20 standard
             "-stdlib=libc++",              # Use libc++ (AppleToolChain.cs:457)
             "-fno-exceptions",             # C++ exceptions OFF
-            "-fno-objc-exceptions",        # Objective-C exceptions OFF
             "-fno-rtti",                   # RTTI OFF
             "-Wall",                       # Enable all warnings
+            # Note: Objective-C exceptions NOT disabled - Mac code uses @try/@catch
         ],
         "@platforms//os:ios": [
             "-x", "objective-c++",        # Compile as Objective-C++ (iOS also uses AppleToolChain)
             "-std=c++20",
             "-stdlib=libc++",
             "-fno-exceptions",             # C++ exceptions OFF
-            "-fno-objc-exceptions",        # Objective-C exceptions OFF
             "-fno-rtti",
             "-Wall",
+            # Note: Objective-C exceptions NOT disabled - iOS code may use @try/@catch
         ],
         "//conditions:default": [
             "-std=c++20",                  # Regular C++ for non-Apple platforms
@@ -207,6 +211,14 @@ def ue_module(
         "WITH_SERVER_CODE=1",             # Include server code (for dedicated servers)
         "IS_MONOLITHIC=0",                # Modular build
         "IS_PROGRAM=0",                   # Not a standalone program
+        "TBBMALLOC_ENABLED=0",            # Disable Intel TBB malloc (platform-specific)
+        "USE_MALLOC_BINNED2=1",           # Use Binned2 allocator (UE default)
+        "USE_MALLOC_BINNED3=0",           # Binned3 experimental allocator OFF
+        "USE_STATS_WITHOUT_ENGINE=0",     # Stats system without full Engine (OFF for modular builds)
+        "FORCE_USE_STATS=0",              # Don't force stats in non-stat builds
+        'UBT_MODULE_MANIFEST=\\"Manifest.dat\\"',  # Module manifest filename
+        'UBT_MODULE_MANIFEST_DEBUGGAME=\\"Manifest-DebugGame.dat\\"',  # DebugGame manifest
+        'UE_APP_NAME=\\"UnrealGame\\"',   # Application name (default for games)
     ]
 
     # Module API export macros (e.g., CORE_API, ENGINE_API)
@@ -223,6 +235,7 @@ def ue_module(
             "PLATFORM_APPLE=1",
             "PLATFORM_COMPILER_OPTIMIZATION_PG=0",           # Profile-guided optimization disabled
             "PLATFORM_COMPILER_OPTIMIZATION_PG_PROFILING=0", # PG profiling disabled
+            "PLATFORM_COMPILER_OPTIMIZATION_LTCG=0",         # Link-time code generation disabled
         ],
         "@platforms//os:linux": [
             "UBT_COMPILED_PLATFORM=Linux",

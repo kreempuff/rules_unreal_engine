@@ -1,9 +1,11 @@
 // Test that UE compiler flags are applied correctly
 
-// This should fail to compile if exceptions are enabled
+// This should fail to compile if C++ exceptions are enabled
+// Note: On Mac/iOS with Objective-C++, __EXCEPTIONS may be defined for ObjC exceptions
+// but C++ exceptions are still disabled via -fno-exceptions
 void test_no_exceptions() {
-    #ifdef __EXCEPTIONS
-        #error "Exceptions should be disabled (-fno-exceptions)"
+    #if defined(__EXCEPTIONS) && !defined(__OBJC__)
+        #error "C++ exceptions should be disabled (-fno-exceptions)"
     #endif
 }
 
