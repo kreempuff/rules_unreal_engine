@@ -427,6 +427,40 @@ bazel build //Engine/Source/Runtime/Core
 - `just clean-test-ue` - Deletes entire test repo (for full reset)
 - `just setup-test-ue` - Initial clone from main UE installation
 
+### Pull Request Workflow
+
+**When merging PRs:**
+
+```bash
+# Check PR status
+gh pr list --head <branch-name>
+
+# Merge with regular merge (preserves commit history)
+gh pr merge <pr-number> --merge
+
+# Verify merge
+gh pr view <pr-number> --json state,mergedAt,title
+
+# Switch back to main and pull
+git checkout main && git pull
+```
+
+**Merge Strategy:**
+- **Use `--merge`** for feature branches (preserves full commit history)
+- **Avoid `--squash`** unless explicitly needed (loses commit granularity)
+- **Never use `--auto`** for automatic merging (requires explicit action)
+
+**After merging:**
+- Always switch back to main and pull latest changes
+- Delete the feature branch locally: `git branch -d <branch-name>`
+- Continue work from updated main branch
+
+**Commit Message Requirements:**
+- **DO NOT** add Claude Code attributions (e.g., "🤖 Generated with Claude Code")
+- **DO NOT** add Co-Authored-By: Claude lines
+- Keep commit messages clean and focused on the actual changes
+- Follow conventional commit format: `type: description`
+
 ### References
 
 - **Task List:** `docs/PLAN.md`
