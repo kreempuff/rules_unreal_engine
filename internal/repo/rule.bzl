@@ -130,8 +130,8 @@ def _unreal_engine_impl(repo_ctx):
         # Download each pack using Bazel's downloader (gets cached!)
         repo_ctx.file("packs/.gitkeep", "")
         for i, url in enumerate(pack_urls):
-            # Extract hash from URL (last component)
-            hash = url.split("/")[-1]
+            # Extract filename from URL (last component, already includes .pack.gz)
+            filename = url.split("/")[-1]
 
             if i % 100 == 0:
                 print("Downloading pack {}/{}".format(i + 1, pack_count))
@@ -139,7 +139,7 @@ def _unreal_engine_impl(repo_ctx):
             # Download pack (Bazel caches this!)
             repo_ctx.download(
                 url = url,
-                output = "packs/{}.pack.gz".format(hash),
+                output = "packs/{}".format(filename),
                 # Note: Pack.Hash is not the file's SHA256, it's a URL identifier
                 # So we can't use sha256 verification here
             )
