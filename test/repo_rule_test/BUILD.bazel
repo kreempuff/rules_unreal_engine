@@ -1,0 +1,7 @@
+"""Test BUILD file to verify repo rule worked"""
+
+# Try to reference something from the UE repo
+filegroup(
+    name = "ue_setup",
+    srcs = ["@ue_test//UnrealEngine:Setup.sh"],
+)
