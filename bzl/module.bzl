@@ -191,6 +191,15 @@ def ue_module(
     # Add additional headers (e.g., unity build .cpp files that should be included)
     hdrs = hdrs + additional_hdrs
 
+    # Generate UHT code for reflection (UCLASS/USTRUCT/UENUM)
+    # UHT runs on all modules but no-ops if no macros present (generates empty files)
+    uht_outputs = _generate_uht_outputs(name, hdrs)
+
+    # TODO: Create genrule for UHT code generation
+    # Challenge: Need platform-specific dotnet path in tools
+    # For now, UHT integration is prepared but not active
+    # Will enable in next commit with platform selection
+
     # UE default compiler flags (from UBT ClangToolChain.cs and AppleToolChain.cs)
     # On Apple platforms, .cpp files are compiled as Objective-C++ to support Foundation headers
     ue_default_copts = select({
