@@ -112,8 +112,10 @@ def _unreal_engine_impl(repo_ctx):
 
     manifest_path = "UnrealEngine/Engine/Build/Commit.gitdeps.xml"
 
-    # TEMPORARY: Hardcode DotNet prefix for fast UBT testing
+    # TEMPORARY: Hardcoded prefixes for fast UBT testing
     # TODO: Remove once validated - need full extraction for real builds
+    # Need: DotNet runtime + UBT dependencies
+    # Note: gitDeps doesn't support multiple prefixes, so we'll get DotNet and hope UBT source is in git
     prefix = "Engine/Binaries/ThirdParty/DotNet"
 
     if repo_ctx.attr.use_bazel_downloader:

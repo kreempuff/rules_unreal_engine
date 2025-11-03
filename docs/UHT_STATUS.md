@@ -183,20 +183,144 @@ a1a9d95 feat: hermetic repository rule with Go SDK download
 
 ---
 
-## Estimated Remaining Work
+---
 
-**To complete ue_module() UHT integration:**
-- Add genrule to bzl/module.bzl (2-3 hours)
-- Solve UE_ROOT parameter issue (1-2 hours)
-- Test with TestModule (1 hour)
-- Fix any Bazel sandboxing issues (2-4 hours)
-- **Total:** 6-10 hours
+## ❌ NOT TESTED YET - CRITICAL
 
-**To build CoreUObject:**
-- Complete ue_module() integration above
-- Ensure all CoreUObject deps exist (1-2 hours)
-- Create CoreUObject BUILD file (1 hour)
-- Debug any UHT issues (2-4 hours)
-- **Total:** 4-7 hours
+### UBT Building in Repository Rule
 
-**Grand Total:** 10-17 hours to CoreUObject building with UHT
+**What was added:** Code to build UnrealBuildTool.dll from source (internal/repo/rule.bzl:176-212)
+**Status:** Written and committed, **NOT tested**
+**Blocker:** This is the critical path - everything depends on this working
+
+**Why it matters:**
+- UBT.dll is a build artifact (compiled from .NET source)
+- NOT in git repository (only .cs source files)
+- NOT in gitdeps (only runtime binaries like dotnet)
+- We MUST build it to run UHT
+
+---
+
+## 🔬 NEXT STEPS - Critical Test
+
+### Test Command (Run Tomorrow)
+
+```bash
+cd /Users/kareemmarch/projects/rules_unreal_engine/test/uht_test
+bazel clean --expunge
+bazel build //:TestModule
+```
+
+### Expected Timeline (~5-7 minutes)
+
+1. Download Go SDK 1.24.3 (~5 sec, cached)
+2. Compile gitDeps (~10 sec)
+3. Clone UE (~2 min, 196k files)
+4. printUrls --prefix "Engine/Binaries/ThirdParty/DotNet" (~1 sec)
+   - Returns 825 packs instead of 9758 (91% reduction!)
+5. Download 825 packs (~2-3 min, Bazel HTTP cache)
+6. Extract DotNet files (~30 sec)
+   - Includes dotnet binary with execute permissions
+7. **Build UnrealBuildTool.dll (~30-60 sec)** ← CRITICAL TEST
+8. Run UHT genrule (creates empty files)
+9. Build TestModule (~5 sec)
+
+### Expected Outcomes
+
+**✅ SUCCESS:**
+```
+DEBUG: UnrealBuildTool built successfully
+INFO: Build completed successfully
+Target //:TestModule up-to-date
+```
+
+**Next:** Fix UHT genrule cmd to actually run UHT and copy files
+
+**❌ FAIL: Missing Dependencies**
+```
+ERROR: Metadata file 'EpicGames.Core.dll' could not be found
+```
+
+**Fix:** UBT needs Epic's libraries. Options:
+- Extract Engine/Binaries/DotNET too (widen prefix)
+- Build those from source (add to repo rule)
+
+**❌ FAIL: Missing Source**
+```
+ERROR: UnrealBuildTool.csproj not found
+```
+
+**Fix:** UBT source should be in git. Verify clone worked.
+
+**❌ FAIL: NuGet/Network Issues**
+```
+ERROR: Unable to load service index for NuGet
+```
+
+**Fix:** Sandbox blocks network. Try `--spawn_strategy=local` or `--no-restore`
+
+### After UBT Works
+
+1. **Fix UHT genrule cmd** - Currently just touches empty files, need to:
+   - Run UHT wrapper with real paths
+   - Copy generated files from UHT output dir to Bazel output dir
+   - Handle manifest path resolution
+
+2. **Test end-to-end** - Verify:
+   - UHT generates real code (not empty files)
+   - Generated code compiles
+   - Module links successfully
+
+3. **Remove DotNet prefix** - Need full UE for real builds:
+   ```python
+   prefix = ""  # Full extraction
+   ```
+
+4. **Create PR** - Merge 13 commits to main
+
+### Debugging Commands
+
+**Check if dotnet is executable:**
+```bash
+find ~/.config/cache/bazel/_bazel_*/*/external/+_repo_rules+unreal_engine_source -name "dotnet" -exec file {} \;
+```
+
+**Check if UBT.dll was built:**
+```bash
+find ~/.config/cache/bazel/_bazel_*/*/external/+_repo_rules+unreal_engine_source -name "UnrealBuildTool.dll"
+```
+
+**Check what was extracted:**
+```bash
+ls ~/.config/cache/bazel/_bazel_*/*/external/+_repo_rules+unreal_engine_source/UnrealEngine/Engine/Binaries/
+```
+
+---
+
+## Long-Term Remaining Work
+
+### After UHT Integration Complete
+
+- [ ] Build CoreUObject with UHT (~27 headers with UCLASS/USTRUCT)
+- [ ] Unlock 90% of modules (JsonUtilities, Serialization, PakFile, Messaging, etc.)
+- [ ] Complete Core 100% (7 remaining files need ImageCore, TargetPlatform, etc.)
+- [ ] Build InputDevice → unlock ApplicationCore
+
+### Phase 2: Go UHT Replacement
+
+- [ ] Implement cmd/uht/ package (C++ parser + code generator)
+- [ ] Test on simple modules (TraceLog, BuildSettings)
+- [ ] Replace Epic's .NET UHT completely
+- [ ] Remove all TEMPORARY markers
+
+### Platform Support
+
+- [ ] Add Linux testing
+- [ ] Add Windows support (SHA256s, paths)
+- [ ] Cross-platform validation
+
+---
+
+**Last Updated:** 2025-11-03
+**Branch:** `feat/phase1.3-uht-bootstrap` (13 commits)
+**Next:** Test UBT building with `cd test/uht_test && bazel build //:TestModule`
