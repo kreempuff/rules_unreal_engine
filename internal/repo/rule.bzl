@@ -73,15 +73,19 @@ def _build_gitdeps(repo_ctx):
     print("gitDeps built successfully")
     return gitdeps_binary
 
-def _parse_pack_urls(repo_ctx, gitdeps_binary, manifest_path):
+def _parse_pack_urls(repo_ctx, gitdeps_binary, manifest_path, prefix):
     """Parse .gitdeps XML and return list of pack URLs using gitDeps tool"""
-    result = repo_ctx.execute([
+    args = [
         gitdeps_binary,
         "gitDeps",
         "printUrls",
         "--input", manifest_path,
         "--output", "json",
-    ])
+    ]
+    if prefix:
+        args.extend(["--prefix", prefix])
+
+    result = repo_ctx.execute(args)
 
     if result.return_code != 0:
         fail("Failed to parse manifest: " + result.stderr)
@@ -108,12 +112,16 @@ def _unreal_engine_impl(repo_ctx):
 
     manifest_path = "UnrealEngine/Engine/Build/Commit.gitdeps.xml"
 
+    # TEMPORARY: Hardcode DotNet prefix for fast UBT testing
+    # TODO: Remove once validated - need full extraction for real builds
+    prefix = "Engine/Binaries/ThirdParty/DotNet"
+
     if repo_ctx.attr.use_bazel_downloader:
         # Bazel-native approach: Use repo_ctx.download() for HTTP caching
         print("Downloading dependencies using Bazel HTTP cache...")
 
-        # Parse manifest to get pack URLs
-        pack_urls = _parse_pack_urls(repo_ctx, gitdeps_binary, manifest_path)
+        # Parse manifest to get pack URLs (with prefix filter)
+        pack_urls = _parse_pack_urls(repo_ctx, gitdeps_binary, manifest_path, prefix)
         pack_count = len(pack_urls)
         print("Found {} packs to download".format(pack_count))
 
@@ -137,14 +145,18 @@ def _unreal_engine_impl(repo_ctx):
         print("All packs downloaded, extracting...")
 
         # Extract all packs using gitDeps (already built above)
+        extract_args = [
+            gitdeps_binary,
+            "extract",
+            "--packs-dir", "packs",
+            "--manifest", manifest_path,
+            "--output-dir", "UnrealEngine",
+        ]
+        if prefix:
+            extract_args.extend(["--prefix", prefix])
+
         exec_result = repo_ctx.execute(
-            [
-                gitdeps_binary,
-                "extract",
-                "--packs-dir", "packs",
-                "--manifest", manifest_path,
-                "--output-dir", "UnrealEngine",
-            ],
+            extract_args,
             quiet = False,
             timeout = 1800,  # 30 min for extraction
         )
@@ -155,7 +167,9 @@ def _unreal_engine_impl(repo_ctx):
         # Fallback: Use gitDeps directly (downloads + extracts in one go)
         print("Downloading dependencies using gitDeps (no Bazel cache)...")
 
-        # gitDeps already built above
+        # Note: gitDeps main command doesn't support --prefix yet
+        # TODO: Add prefix support to main gitDeps command too
+        # For now, simple mode downloads everything
         exec_result = repo_ctx.execute(
             [
                 gitdeps_binary,
@@ -172,6 +186,44 @@ def _unreal_engine_impl(repo_ctx):
             fail("Failed to download dependencies: " + exec_result.stdout + exec_result.stderr)
 
     print("Unreal Engine dependencies ready")
+
+    # Build UnrealBuildTool from source using bundled dotnet
+    # UBT.dll is a build artifact (not in git), so we compile it during repo setup
+    print("Building UnrealBuildTool from source...")
+
+    # Detect platform for bundled dotnet path
+    os_name = repo_ctx.os.name.lower()
+    os_arch = repo_ctx.os.arch.lower()
+    if "mac" in os_name or "darwin" in os_name:
+        if "aarch64" in os_arch or "arm64" in os_arch:
+            dotnet_platform = "mac-arm64"
+        else:
+            dotnet_platform = "mac-x64"
+    elif "linux" in os_name:
+        if "aarch64" in os_arch or "arm64" in os_arch:
+            dotnet_platform = "linux-arm64"
+        else:
+            dotnet_platform = "linux-x64"
+    else:
+        fail("Unsupported platform for UBT build: {} {}".format(os_name, os_arch))
+
+    # Bundled dotnet (extracted by gitDeps)
+    dotnet_binary = repo_ctx.path("UnrealEngine/Engine/Binaries/ThirdParty/DotNet/8.0.300/{}/dotnet".format(dotnet_platform))
+
+    # Build UnrealBuildTool.csproj
+    ubt_result = repo_ctx.execute([
+        dotnet_binary,
+        "build",
+        "UnrealEngine/Engine/Source/Programs/UnrealBuildTool/UnrealBuildTool.csproj",
+        "-c", "Release",
+        "--output", "UnrealEngine/Engine/Binaries/DotNET/UnrealBuildTool",
+    ])
+
+    if ubt_result.return_code != 0:
+        fail("Failed to build UnrealBuildTool:\nstdout: {}\nstderr: {}".format(
+            ubt_result.stdout, ubt_result.stderr))
+
+    print("UnrealBuildTool built successfully")
 
     # Export bundled tools for UHT code generation
     # Platform-specific dotnet binary paths
