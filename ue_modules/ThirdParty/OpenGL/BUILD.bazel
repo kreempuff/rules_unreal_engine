@@ -27,19 +27,24 @@ cc_library(
     # Platform-specific frameworks and system libraries
     linkopts = select({
         "@platforms//os:macos": [
-            "-framework", "OpenGL",
-            "-framework", "QuartzCore",
+            "-framework",
+            "OpenGL",
+            "-framework",
+            "QuartzCore",
         ],
         "@platforms//os:ios": [
-            "-framework", "OpenGLES",
+            "-framework",
+            "OpenGLES",
         ],
         "@platforms//os:windows": [
             "opengl32.lib",
         ],
         "//conditions:default": [],
     }),
-
+    tags = [
+        "graphics",
+        "opengl",
+        "third-party",
+    ],
     visibility = ["//visibility:public"],
-
-    tags = ["third-party", "opengl", "graphics"],
 )

@@ -10,6 +10,11 @@ load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
 
 ue_module(
     name = "Sockets",
+
+    # From Sockets.Build.cs: PublicDefinitions
+    defines = [
+        "SOCKETS_PACKAGE=1",
+    ],
     module_type = "Runtime",
 
     # From Sockets.Build.cs: PrivateDependencyModuleNames
@@ -17,11 +22,5 @@ ue_module(
         "//Engine/Source/Runtime/Core",
         "//Engine/Source/Runtime/Net/Common:NetCommon",
     ],
-
-    # From Sockets.Build.cs: PublicDefinitions
-    defines = [
-        "SOCKETS_PACKAGE=1",
-    ],
-
     visibility = ["//visibility:public"],
 )

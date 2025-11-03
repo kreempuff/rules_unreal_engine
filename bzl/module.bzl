@@ -9,23 +9,35 @@ def _generate_uht_outputs(name, hdrs):
     """Generate list of expected UHT output files.
 
     For each header, UHT MAY generate:
-    - HeaderName.generated.h
-    - HeaderName.gen.cpp
+    - Path_To_HeaderName.generated.h
+    - Path_To_HeaderName.gen.cpp
 
     Plus always:
     - ModuleName.init.gen.cpp
 
     We create empty placeholders for all of them. UHT overwrites with content
     if the header contains UCLASS/USTRUCT/UENUM, otherwise leaves empty.
+
+    To avoid filename collisions (e.g., Public/Algo/AnyOf.h and Public/Concepts/AnyOf.h),
+    we preserve the directory structure by replacing slashes with underscores.
     """
     outputs = [name + ".init.gen.cpp"]
 
     for hdr in hdrs:
-        # Extract filename without extension
-        # e.g., "Public/Foo/Bar.h" → "Bar"
-        basename = hdr.split("/")[-1].rsplit(".", 1)[0]
-        outputs.append(basename + ".generated.h")
-        outputs.append(basename + ".gen.cpp")
+        # Skip genrule outputs (":ModuleName_uht") - only process actual header files
+        if hdr.startswith(":"):
+            continue
+
+        # Skip .inl files - they're inline implementations, not UHT targets
+        if hdr.endswith(".inl"):
+            continue
+
+        # Preserve full path to avoid collisions
+        # e.g., "Public/Algo/AnyOf.h" → "Public_Algo_AnyOf"
+        path_without_ext = hdr.rsplit(".", 1)[0]
+        sanitized = path_without_ext.replace("/", "_")
+        outputs.append(sanitized + ".generated.h")
+        outputs.append(sanitized + ".gen.cpp")
 
     return outputs
 
@@ -141,7 +153,12 @@ def ue_module(
 
     Args:
         name: Module name (e.g., "Core", "CoreUObject")
-        module_type: Module type - "Runtime", "Developer", "Editor", "Program"
+        module_type: Module type - Must be one of:
+            "Runtime"    - Runtime engine module
+            "Developer"  - Development-time module
+            "Editor"     - Editor-only module
+            "Program"    - Standalone program module
+            "ThirdParty" - External third-party library
         srcs: Source files (.cpp, .c, .mm). If None, uses glob(["Private/**/*.cpp"])
         hdrs: Header files (.h, .hpp). If None, uses glob(["Public/**/*.h"])
         public_deps: Public module dependencies (visible to dependents)
@@ -167,6 +184,11 @@ def ue_module(
         visibility: Bazel visibility
         **kwargs: Additional cc_library arguments
 
+    Note:
+        UnrealHeaderTool (UHT) code generation is automatically enabled for all
+        non-ThirdParty modules. ThirdParty modules never use UE reflection system.
+        UHT gracefully no-ops if no UCLASS/USTRUCT/UENUM macros are present.
+
     Example:
         ue_module(
             name = "Core",
@@ -184,6 +206,18 @@ def ue_module(
             defines = ["UE_ENABLE_ICU=1"],
         )
     """
+
+    # Validate module_type
+    valid_module_types = ["Runtime", "Developer", "Editor", "Program", "ThirdParty"]
+    if module_type not in valid_module_types:
+        fail("Invalid module_type '{}' for module '{}'. Must be one of: {}".format(
+            module_type, name, ", ".join(valid_module_types)))
+
+    # Determine if UHT code generation should run
+    # ThirdParty modules are external libraries that don't use UE reflection
+    # All other module types may use UCLASS/USTRUCT/UENUM macros
+    # UHT gracefully no-ops (generates empty files) if no reflection macros present
+    _enable_uht = (module_type != "ThirdParty")
 
     # Default source/header discovery with platform filtering
     if srcs == None:
@@ -278,24 +312,26 @@ def ue_module(
     hdrs = hdrs + additional_hdrs
 
     # Generate UHT code for reflection (UCLASS/USTRUCT/UENUM)
-    # UHT runs on all modules but no-ops if no macros present (generates empty files)
-    uht_outputs = _generate_uht_outputs(name, hdrs)
+    # Automatically disabled for ThirdParty modules
+    if _enable_uht:
+        # UHT runs on all modules but no-ops if no macros present (generates empty files)
+        uht_outputs = _generate_uht_outputs(name, hdrs)
 
-    # Create manifest and uproject for UHT
-    _generate_uht_files(name, hdrs, module_type, uht_outputs)
+        # Create manifest and uproject for UHT
+        _generate_uht_files(name, hdrs, module_type, uht_outputs)
 
-    # Add UHT genrule as dependency
-    # The genrule provides all generated files (.h and .cpp) as outputs
-    # Bazel will include them in hdrs/srcs automatically via the genrule target
-    hdrs = hdrs + [":" + name + "_uht"]
+        # Add UHT genrule as dependency
+        # The genrule provides all generated files (.h and .cpp) as outputs
+        # Bazel will include them in hdrs/srcs automatically via the genrule target
+        hdrs = hdrs + [":" + name + "_uht"]
 
-    # Add UHT genrule to sources for .cpp files (.init.gen.cpp, .gen.cpp)
-    if _auto_globbed_srcs:
-        _globbed_cpp = _globbed_cpp + [":" + name + "_uht"]
-    elif srcs == None:
-        srcs = [":" + name + "_uht"]
-    else:
-        srcs = srcs + [":" + name + "_uht"]
+        # Add UHT genrule to sources for .cpp files (.init.gen.cpp, .gen.cpp)
+        if _auto_globbed_srcs:
+            _globbed_cpp = _globbed_cpp + [":" + name + "_uht"]
+        elif srcs == None:
+            srcs = [":" + name + "_uht"]
+        else:
+            srcs = srcs + [":" + name + "_uht"]
 
     # UE default compiler flags (from UBT ClangToolChain.cs and AppleToolChain.cs)
     # On Apple platforms, .cpp files are compiled as Objective-C++ to support Foundation headers

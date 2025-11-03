@@ -8,16 +8,6 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 cc_library(
     name = "PLCrashReporter",
 
-    # Public headers from Source directory
-    hdrs = glob([
-        "PLCrashReporter/Source/*.h",
-        "PLCrashReporter/Source/*.hpp",
-    ]),
-
-    # From PLCrashReporter.Build.cs:24
-    # PublicSystemIncludePaths.Add(PLSourcePath)
-    includes = ["PLCrashReporter/Source"],
-
     # Platform-specific precompiled libraries
     # From PLCrashReporter.Build.cs:39 (Mac Release by default)
     srcs = select({
@@ -31,15 +21,28 @@ cc_library(
         "//conditions:default": [],
     }),
 
+    # Public headers from Source directory
+    hdrs = glob([
+        "PLCrashReporter/Source/*.h",
+        "PLCrashReporter/Source/*.hpp",
+    ]),
+
+    # From PLCrashReporter.Build.cs:24
+    # PublicSystemIncludePaths.Add(PLSourcePath)
+    includes = ["PLCrashReporter/Source"],
+
+    # Mark as external third-party precompiled library
+    tags = [
+        "plcrashreporter",
+        "precompiled",
+        "third_party",
+    ],
+
     # Mac/iOS only (not available on other platforms)
     target_compatible_with = select({
         "@platforms//os:macos": [],
         "@platforms//os:ios": [],
         "//conditions:default": ["@platforms//:incompatible"],
     }),
-
     visibility = ["//visibility:public"],
-
-    # Mark as external third-party precompiled library
-    tags = ["third_party", "plcrashreporter", "precompiled"],
 )
