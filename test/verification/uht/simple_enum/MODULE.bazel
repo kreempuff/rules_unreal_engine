@@ -8,7 +8,7 @@ bazel_dep(name = "rules_cc", version = "0.2.13")
 # Local override to use our in-development rules_unreal_engine
 local_path_override(
     module_name = "rules_unreal_engine",
-    path = "../..",
+    path = "../../../..",
 )
 bazel_dep(name = "rules_unreal_engine", version = "0.1.0")
 
