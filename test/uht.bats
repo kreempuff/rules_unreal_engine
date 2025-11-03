@@ -31,7 +31,8 @@ teardown() {
 @test "UHT wrapper generates code for UENUM" {
     # Run UHT on TestEnum (has UENUM macro)
     run ./tools/uht_wrapper.sh \
-        "$UE_ROOT" \
+        "$UE_ROOT/Engine/Binaries/ThirdParty/DotNet/8.0.300/mac-arm64/dotnet" \
+        "$UE_ROOT/Engine/Binaries/DotNET/UnrealBuildTool/UnrealBuildTool.dll" \
         test/uht_test/TestProject.uproject \
         test/uht_test/TestModule.uhtmanifest
 
@@ -56,7 +57,8 @@ teardown() {
 @test "UHT wrapper no-ops on plain class without macros" {
     # Run UHT on PlainClass (no UCLASS/USTRUCT/UENUM)
     run ./tools/uht_wrapper.sh \
-        "$UE_ROOT" \
+        "$UE_ROOT/Engine/Binaries/ThirdParty/DotNet/8.0.300/mac-arm64/dotnet" \
+        "$UE_ROOT/Engine/Binaries/DotNET/UnrealBuildTool/UnrealBuildTool.dll" \
         test/uht_test/TestProject.uproject \
         test/uht_test/TestPlain.uhtmanifest
 

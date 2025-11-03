@@ -5,6 +5,30 @@ This replaces UnrealBuildTool's .Build.cs files with native Bazel rules.
 
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
+def _generate_uht_outputs(name, hdrs):
+    """Generate list of expected UHT output files.
+
+    For each header, UHT MAY generate:
+    - HeaderName.generated.h
+    - HeaderName.gen.cpp
+
+    Plus always:
+    - ModuleName.init.gen.cpp
+
+    We create empty placeholders for all of them. UHT overwrites with content
+    if the header contains UCLASS/USTRUCT/UENUM, otherwise leaves empty.
+    """
+    outputs = [name + ".init.gen.cpp"]
+
+    for hdr in hdrs:
+        # Extract filename without extension
+        # e.g., "Public/Foo/Bar.h" → "Bar"
+        basename = hdr.split("/")[-1].rsplit(".", 1)[0]
+        outputs.append(basename + ".generated.h")
+        outputs.append(basename + ".gen.cpp")
+
+    return outputs
+
 def ue_module(
         name,
         module_type = "Runtime",

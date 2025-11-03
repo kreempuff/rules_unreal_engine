@@ -173,7 +173,29 @@ def _unreal_engine_impl(repo_ctx):
 
     print("Unreal Engine dependencies ready")
 
-    # Create build file
+    # Export bundled tools for UHT code generation
+    # Platform-specific dotnet binary paths
+    dotnet_builds = {
+        "mac-arm64": "UnrealEngine/Engine/Binaries/ThirdParty/DotNet/8.0.300/mac-arm64/BUILD.bazel",
+        "mac-x64": "UnrealEngine/Engine/Binaries/ThirdParty/DotNet/8.0.300/mac-x64/BUILD.bazel",
+        "linux-arm64": "UnrealEngine/Engine/Binaries/ThirdParty/DotNet/8.0.300/linux-arm64/BUILD.bazel",
+        "linux-x64": "UnrealEngine/Engine/Binaries/ThirdParty/DotNet/8.0.300/linux-x64/BUILD.bazel",
+        # TODO: Windows paths when Windows support added
+    }
+
+    # Create BUILD files for all dotnet platforms
+    for platform, path in dotnet_builds.items():
+        repo_ctx.file(path, 'exports_files(["dotnet"])')
+
+    # Export UnrealBuildTool.dll and UHT.dll (platform-independent)
+    repo_ctx.file("UnrealEngine/Engine/Binaries/DotNET/UnrealBuildTool/BUILD.bazel", """
+exports_files([
+    "UnrealBuildTool.dll",
+    "EpicGames.UHT.dll",
+])
+""")
+
+    # Create main build file
     repo_ctx.file("UnrealEngine/BUILD", """exports_files(["Setup.sh"])""")
 
 unreal_engine = repository_rule(
