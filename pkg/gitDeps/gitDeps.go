@@ -244,8 +244,12 @@ func ExtractUEPack(packData []byte, blobs []Blob, files []File, targetDir string
 			return fmt.Errorf("failed to create directory for %s: %w", file.Name, err)
 		}
 
-		// Write file
-		if err := os.WriteFile(targetPath, fileData, 0644); err != nil {
+		// Write file with appropriate permissions
+		fileMode := os.FileMode(0644)
+		if file.IsExecutable {
+			fileMode = 0755
+		}
+		if err := os.WriteFile(targetPath, fileData, fileMode); err != nil {
 			return fmt.Errorf("failed to write file %s: %w", file.Name, err)
 		}
 

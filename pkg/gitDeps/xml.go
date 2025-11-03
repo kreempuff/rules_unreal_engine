@@ -21,6 +21,7 @@ type File struct {
 	Hash         string `xml:"Hash,attr"`
 	ExpectedHash string `xml:"ExpectedHash,attr"`
 	Timestamp    int    `xml:"Timestamp,attr"`
+	IsExecutable bool   `xml:"IsExecutable,attr"`
 }
 
 type Blob struct {
