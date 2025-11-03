@@ -146,9 +146,39 @@ func GetPackfromFileName(filename string, w WorkingManifest) *Pack {
 
 // GetPackUrls returns a list of urls for all the packs in a manifest file
 func GetPackUrls(w WorkingManifest) []string {
+	return GetPackUrlsWithPrefix(w, "")
+}
+
+func GetPackUrlsWithPrefix(w WorkingManifest, prefix string) []string {
+	// If no prefix, return all packs
+	if prefix == "" {
+		var urls []string
+		for _, p := range w.Packs {
+			urls = append(urls, fmt.Sprintf("%s/%s/%s", w.BaseUrl, p.RemotePath, p.Hash))
+		}
+		return urls
+	}
+
+	// Build map of PackHash -> bool (packs that contain files with prefix)
+	neededPacks := make(map[string]bool)
+	for _, file := range w.Files {
+		if strings.HasPrefix(file.Name, prefix) {
+			// Find which pack contains this file's blob
+			for _, blob := range w.Blobs {
+				if blob.Hash == file.Hash {
+					neededPacks[blob.PackHash] = true
+					break
+				}
+			}
+		}
+	}
+
+	// Return URLs only for needed packs
 	var urls []string
 	for _, p := range w.Packs {
-		urls = append(urls, fmt.Sprintf("%s/%s/%s", w.BaseUrl, p.RemotePath, p.Hash))
+		if neededPacks[p.Hash] {
+			urls = append(urls, fmt.Sprintf("%s/%s/%s", w.BaseUrl, p.RemotePath, p.Hash))
+		}
 	}
 	return urls
 }

@@ -9,6 +9,7 @@ import (
 	"kreempuff.dev/rules-unreal-engine/pkg/gitDeps"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 var extractCmd = &cobra.Command{
@@ -24,6 +25,7 @@ that were downloaded using Bazel's HTTP cache (repo_ctx.download).`,
 		manifestPath, _ := cmd.Flags().GetString("manifest")
 		outputDir, _ := cmd.Flags().GetString("output-dir")
 		verbose, _ := cmd.Flags().GetBool("verbose")
+		prefix, _ := cmd.Flags().GetString("prefix")
 
 		// Set log level
 		if verbose {
@@ -41,6 +43,19 @@ that were downloaded using Bazel's HTTP cache (repo_ctx.download).`,
 		}
 
 		logrus.Infof("found %d packs in manifest", len(manifest.Packs))
+
+		// Filter files by prefix if specified
+		filesToExtract := manifest.Files
+		if prefix != "" {
+			var filtered []gitDeps.File
+			for _, f := range manifest.Files {
+				if strings.HasPrefix(f.Name, prefix) {
+					filtered = append(filtered, f)
+				}
+			}
+			filesToExtract = filtered
+			logrus.Infof("prefix filter '%s': extracting %d/%d files", prefix, len(filtered), len(manifest.Files))
+		}
 
 		// Extract each pack
 		for i, pack := range manifest.Packs {
@@ -90,7 +105,7 @@ that were downloaded using Bazel's HTTP cache (repo_ctx.download).`,
 			}
 
 			var packFiles []gitDeps.File
-			for _, file := range manifest.Files {
+			for _, file := range filesToExtract {
 				for _, blob := range packBlobs {
 					if file.Hash == blob.Hash {
 						packFiles = append(packFiles, file)
@@ -118,6 +133,7 @@ func init() {
 	extractCmd.Flags().String("manifest", "", "Path to .gitdeps.xml manifest file")
 	extractCmd.Flags().StringP("output-dir", "o", ".", "Directory to extract files to")
 	extractCmd.Flags().Bool("verbose", false, "Enable verbose logging")
+	extractCmd.Flags().String("prefix", "", "Only extract files with this path prefix (e.g., 'Engine/Binaries/DotNET')")
 
 	extractCmd.MarkFlagRequired("packs-dir")
 	extractCmd.MarkFlagRequired("manifest")
