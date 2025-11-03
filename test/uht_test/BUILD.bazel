@@ -1,0 +1,12 @@
+"""Test BUILD file for UHT code generation in ue_module()"""
+
+load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
+
+# Test: Module with UENUM - UHT should generate reflection code
+ue_module(
+    name = "TestModule",
+    module_type = "Runtime",
+    hdrs = ["Public/TestEnum.h"],
+    srcs = ["Private/TestModule.cpp"],
+    # UHT enabled by default, uses @unreal_engine_source from MODULE.bazel
+)

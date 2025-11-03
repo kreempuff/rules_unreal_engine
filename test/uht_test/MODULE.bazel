@@ -1,0 +1,23 @@
+"""Test MODULE.bazel for testing UHT integration in ue_module()"""
+
+module(name = "uht_test", version = "1.0.0")
+
+bazel_dep(name = "platforms", version = "1.0.0")
+bazel_dep(name = "rules_cc", version = "0.2.13")
+
+# Local override to use our in-development rules_unreal_engine
+local_path_override(
+    module_name = "rules_unreal_engine",
+    path = "../..",
+)
+bazel_dep(name = "rules_unreal_engine", version = "0.1.0")
+
+# Set up UnrealEngine source using repository rule
+unreal_engine = use_repo_rule("@rules_unreal_engine//internal/repo:rule.bzl", "unreal_engine")
+
+unreal_engine(
+    name = "unreal_engine_source",
+    git_repository = "file:///Users/kareemmarch/Projects/UnrealEngine",
+    commit = "kreempuff-release",
+    use_bazel_downloader = True,  # Use Bazel HTTP cache (shared across invocations!)
+)

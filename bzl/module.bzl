@@ -29,6 +29,92 @@ def _generate_uht_outputs(name, hdrs):
 
     return outputs
 
+def _generate_uht_files(name, hdrs, module_type, uht_outputs):
+    """Generate UHT genrules for code generation.
+
+    Creates:
+    1. Manifest genrule (.uhtmanifest JSON)
+    2. Uproject genrule (.uproject stub)
+    3. UHT codegen genrule (runs UHT, generates reflection code)
+    """
+    # TODO: Use repo rule to determine correct external repo name
+    # For now, assume @unreal_engine_source
+    ue_repo = "@unreal_engine_source"
+
+    # Generate manifest
+    hdrs_json = '", "'.join(hdrs)
+    manifest_content = """{
+  "IsGameTarget": true,
+  "RootLocalPath": "/tmp/uht",
+  "TargetName": "BazelTarget",
+  "Modules": [{
+    "Name": "%s",
+    "ModuleType": "Engine%s",
+    "BaseDirectory": "/tmp/uht",
+    "IncludePaths": ["Public", "Private"],
+    "OutputDirectory": "/tmp/uht/generated",
+    "PublicHeaders": ["%s"],
+    "GeneratedCPPFilenameBase": "/tmp/uht/generated/%s.gen",
+    "SaveExportedHeaders": true,
+    "UHTGeneratedCodeVersion": "None"
+  }]
+}""" % (name, module_type, hdrs_json, name)
+
+    native.genrule(
+        name = name + "_uht_manifest",
+        outs = [name + ".uhtmanifest"],
+        cmd = "cat > $@ <<'EOF'\n" + manifest_content + "\nEOF",
+    )
+
+    # Generate uproject
+    native.genrule(
+        name = name + "_uht_uproject",
+        outs = [name + ".uproject"],
+        cmd = """cat > $@ <<'EOF'
+{
+  "FileVersion": 3,
+  "EngineAssociation": "5.5",
+  "Modules": [{"Name": "%s", "Type": "Runtime"}]
+}
+EOF
+""" % name,
+    )
+
+    # Generate UHT code (single genrule outputs all files)
+    # MVP: Hardcode Mac ARM64 for now, add platform detection later
+    # TODO: Support other platforms (mac-x64, linux-arm64, linux-x64, windows)
+    native.genrule(
+        name = name + "_uht",
+        srcs = hdrs + [":" + name + "_uht_manifest", ":" + name + "_uht_uproject"],
+        outs = uht_outputs,
+        tools = [
+            Label("//tools:uht_wrapper.sh"),  # Resolves to rules_unreal_engine repo
+            # MVP: Mac ARM64 only
+            # TODO: Add select() alternative for platform detection
+            ue_repo + "//UnrealEngine/Engine/Binaries/ThirdParty/DotNet/8.0.300/mac-arm64:dotnet",
+            ue_repo + "//UnrealEngine/Engine/Binaries/DotNET/UnrealBuildTool:UnrealBuildTool.dll",
+        ],
+        cmd = """
+            # Create empty placeholders for all outputs
+            for f in $(OUTS); do touch $$f; done
+
+            # Run UHT wrapper (TEMPORARY - uses Epic's .NET UHT)
+            # TODO: Replace with Go UHT implementation
+            WRAPPER=$(location {wrapper})
+            DOTNET=$(location {ue_repo}//UnrealEngine/Engine/Binaries/ThirdParty/DotNet/8.0.300/mac-arm64:dotnet)
+            UBT=$(location {ue_repo}//UnrealEngine/Engine/Binaries/DotNET/UnrealBuildTool:UnrealBuildTool.dll)
+            PROJECT=$(location :{name}_uht_uproject)
+            MANIFEST=$(location :{name}_uht_manifest)
+
+            $$WRAPPER $$DOTNET $$UBT $$PROJECT $$MANIFEST || true
+
+            # TODO: Copy generated files from UHT output dir to Bazel output dir
+            # UHT writes to OutputDirectory in manifest (/tmp/uht/generated/)
+            # Need to copy to $$(@D)/
+        """.format(wrapper = Label("//tools:uht_wrapper.sh"), ue_repo = ue_repo, name = name),
+        tags = ["uht", "codegen"],
+    )
+
 def ue_module(
         name,
         module_type = "Runtime",
@@ -195,10 +281,21 @@ def ue_module(
     # UHT runs on all modules but no-ops if no macros present (generates empty files)
     uht_outputs = _generate_uht_outputs(name, hdrs)
 
-    # TODO: Create genrule for UHT code generation
-    # Challenge: Need platform-specific dotnet path in tools
-    # For now, UHT integration is prepared but not active
-    # Will enable in next commit with platform selection
+    # Create manifest and uproject for UHT
+    _generate_uht_files(name, hdrs, module_type, uht_outputs)
+
+    # Add UHT genrule as dependency
+    # The genrule provides all generated files (.h and .cpp) as outputs
+    # Bazel will include them in hdrs/srcs automatically via the genrule target
+    hdrs = hdrs + [":" + name + "_uht"]
+
+    # Add UHT genrule to sources for .cpp files (.init.gen.cpp, .gen.cpp)
+    if _auto_globbed_srcs:
+        _globbed_cpp = _globbed_cpp + [":" + name + "_uht"]
+    elif srcs == None:
+        srcs = [":" + name + "_uht"]
+    else:
+        srcs = srcs + [":" + name + "_uht"]
 
     # UE default compiler flags (from UBT ClangToolChain.cs and AppleToolChain.cs)
     # On Apple platforms, .cpp files are compiled as Objective-C++ to support Foundation headers
