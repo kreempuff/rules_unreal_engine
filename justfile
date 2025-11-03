@@ -16,18 +16,25 @@ test-install filter="":
 test-core filter="":
     RUN_SLOW_TESTS=1 bats test/build_core.bats {{if filter != "" { "--filter '" + filter + "'" } else { "" } }}
 
+# Run UHT BATS tests (requires RUN_SLOW_TESTS=1 and UE_ROOT)
+test-uht filter="":
+    @echo "Usage: UE_ROOT=/path/to/UnrealEngine RUN_SLOW_TESTS=1 just test-uht"
+    @[ -n "$$UE_ROOT" ] || (echo "Error: UE_ROOT not set" && exit 1)
+    RUN_SLOW_TESTS=1 bats test/uht.bats {{if filter != "" { "--filter '" + filter + "'" } else { "" } }}
+
 # Run all BATS tests (fast tests only)
 test-all:
     bats test/gitdeps.bats
     bats test/ue_module.bats
     bats test/install_builds.bats
 
-# Run all BATS tests including slow E2E tests
+# Run all BATS tests including slow E2E tests (UHT tests require UE_ROOT)
 test-all-slow:
     bats test/gitdeps.bats
     RUN_SLOW_TESTS=1 bats test/ue_module.bats
     bats test/install_builds.bats
     RUN_SLOW_TESTS=1 bats test/build_core.bats
+    @if [ -n "$$UE_ROOT" ]; then RUN_SLOW_TESTS=1 bats test/uht.bats; else echo "Skipping UHT tests (UE_ROOT not set)"; fi
 
 # Run Bazel tests
 test-bazel:
