@@ -112,59 +112,79 @@ def _unreal_engine_impl(repo_ctx):
 
     manifest_path = "UnrealEngine/Engine/Build/Commit.gitdeps.xml"
 
-    # TEMPORARY: Hardcoded prefixes for fast UBT testing
+    # TEMPORARY: Hardcoded prefixes for UBT testing
     # TODO: Remove once validated - need full extraction for real builds
-    # Need: DotNet runtime + UBT dependencies
-    # Note: gitDeps doesn't support multiple prefixes, so we'll get DotNet and hope UBT source is in git
-    prefix = "Engine/Binaries/ThirdParty/DotNet"
+    # Multiple prefixes needed for UBT:
+    # - Engine/Binaries/ThirdParty/DotNet (dotnet runtime)
+    # - Engine/Source/Programs (UBT source + .props files from gitDeps)
+    # Note: gitDeps doesn't support multiple prefixes in one call, so we'll download/extract separately
+    prefixes = [
+        "Engine/Binaries/ThirdParty/DotNet",
+        "Engine/Source/Programs",
+    ]
 
     if repo_ctx.attr.use_bazel_downloader:
         # Bazel-native approach: Use repo_ctx.download() for HTTP caching
         print("Downloading dependencies using Bazel HTTP cache...")
 
-        # Parse manifest to get pack URLs (with prefix filter)
-        pack_urls = _parse_pack_urls(repo_ctx, gitdeps_binary, manifest_path, prefix)
-        pack_count = len(pack_urls)
-        print("Found {} packs to download".format(pack_count))
+        # Download packs for all prefixes
+        repo_ctx.file("packs/.gitkeep", "")
+        all_pack_urls = []
+
+        for prefix in prefixes:
+            # Parse manifest to get pack URLs for this prefix
+            pack_urls = _parse_pack_urls(repo_ctx, gitdeps_binary, manifest_path, prefix)
+            print("Prefix '{}': Found {} packs".format(prefix, len(pack_urls)))
+            all_pack_urls.extend(pack_urls)
+
+        # Deduplicate URLs (some packs may be needed by multiple prefixes)
+        unique_pack_urls = {url: True for url in all_pack_urls}.keys()
+        pack_count = len(unique_pack_urls)
+        print("Total unique packs to download: {}".format(pack_count))
 
         # Download each pack using Bazel's downloader (gets cached!)
-        repo_ctx.file("packs/.gitkeep", "")
-        for i, url in enumerate(pack_urls):
-            # Extract filename from URL (last component, already includes .pack.gz)
-            filename = url.split("/")[-1]
+        for i, url in enumerate(unique_pack_urls):
+            # Extract hash from URL (last component)
+            # URLs from gitDeps are just the hash, not hash.pack.gz
+            # e.g., https://cdn.../ABC123 (not ABC123.pack.gz)
+            hash = url.split("/")[-1]
 
             if i % 100 == 0:
                 print("Downloading pack {}/{}".format(i + 1, pack_count))
 
             # Download pack (Bazel caches this!)
+            # Add .pack.gz extension because gitDeps expects it
             repo_ctx.download(
                 url = url,
-                output = "packs/{}".format(filename),
+                output = "packs/{}.pack.gz".format(hash),
                 # Note: Pack.Hash is not the file's SHA256, it's a URL identifier
                 # So we can't use sha256 verification here
             )
 
         print("All packs downloaded, extracting...")
 
-        # Extract all packs using gitDeps (already built above)
-        extract_args = [
-            gitdeps_binary,
-            "extract",
-            "--packs-dir", "packs",
-            "--manifest", manifest_path,
-            "--output-dir", "UnrealEngine",
-        ]
-        if prefix:
-            extract_args.extend(["--prefix", prefix])
+        # Extract packs for each prefix separately
+        # (gitDeps extract command accepts prefix filter)
+        for prefix in prefixes:
+            print("Extracting files with prefix '{}'...".format(prefix))
+            extract_args = [
+                gitdeps_binary,
+                "extract",
+                "--packs-dir", "packs",
+                "--manifest", manifest_path,
+                "--output-dir", "UnrealEngine",
+                "--prefix", prefix,
+            ]
 
-        exec_result = repo_ctx.execute(
-            extract_args,
-            quiet = False,
-            timeout = 1800,  # 30 min for extraction
-        )
+            exec_result = repo_ctx.execute(
+                extract_args,
+                quiet = False,
+                timeout = 1800,  # 30 min for extraction
+            )
 
-        if exec_result.return_code != 0:
-            fail("Failed to extract packs: " + exec_result.stdout + exec_result.stderr)
+            if exec_result.return_code != 0:
+                fail("Failed to extract packs for prefix '{}': {}{}".format(
+                    prefix, exec_result.stdout, exec_result.stderr))
     else:
         # Fallback: Use gitDeps directly (downloads + extracts in one go)
         print("Downloading dependencies using gitDeps (no Bazel cache)...")
