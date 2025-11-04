@@ -26,7 +26,7 @@ var printUrlsCmd = &cobra.Command{
 			logrus.Exit(UnknownExitCode)
 		}
 
-		prefix, err := cmd.Flags().GetString("prefix")
+		prefixes, err := cmd.Flags().GetStringSlice("prefix")
 		if err != nil {
 			logrus.Error(err)
 			logrus.Exit(UnknownExitCode)
@@ -38,8 +38,8 @@ var printUrlsCmd = &cobra.Command{
 			logrus.Exit(UnknownExitCode)
 		}
 
-		// Get pack URLs, optionally filtered by file prefix
-		urls := gitDeps.GetPackUrlsWithPrefix(*manifest, prefix)
+		// Get pack URLs, optionally filtered by file prefixes
+		urls := gitDeps.GetPackUrlsWithPrefixes(*manifest, prefixes)
 
 		out := ""
 		switch output {
@@ -82,5 +82,5 @@ func init() {
 	// Define flags
 	printUrlsCmd.Flags().StringP("input", "i", ".", "Path to .ue4dependencies file or directory containing it")
 	printUrlsCmd.Flags().StringP("output", "o", "json", "How the urls should be printed. Valid values are 'json' and 'bazel'.")
-	printUrlsCmd.Flags().String("prefix", "", "Only include packs containing files with this path prefix (e.g., 'Engine/Binaries/DotNET')")
+	printUrlsCmd.Flags().StringSlice("prefix", []string{}, "Only include packs containing files with these path prefixes (repeatable, e.g., --prefix=Engine/Binaries --prefix=Engine/Source/Programs)")
 }

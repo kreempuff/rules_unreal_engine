@@ -150,8 +150,12 @@ func GetPackUrls(w WorkingManifest) []string {
 }
 
 func GetPackUrlsWithPrefix(w WorkingManifest, prefix string) []string {
-	// If no prefix, return all packs
-	if prefix == "" {
+	return GetPackUrlsWithPrefixes(w, []string{prefix})
+}
+
+func GetPackUrlsWithPrefixes(w WorkingManifest, prefixes []string) []string {
+	// If no prefixes, return all packs
+	if len(prefixes) == 0 || (len(prefixes) == 1 && prefixes[0] == "") {
 		var urls []string
 		for _, p := range w.Packs {
 			urls = append(urls, fmt.Sprintf("%s/%s/%s", w.BaseUrl, p.RemotePath, p.Hash))
@@ -159,16 +163,20 @@ func GetPackUrlsWithPrefix(w WorkingManifest, prefix string) []string {
 		return urls
 	}
 
-	// Build map of PackHash -> bool (packs that contain files with prefix)
+	// Build map of PackHash -> bool (packs that contain files matching any prefix)
 	neededPacks := make(map[string]bool)
 	for _, file := range w.Files {
-		if strings.HasPrefix(file.Name, prefix) {
-			// Find which pack contains this file's blob
-			for _, blob := range w.Blobs {
-				if blob.Hash == file.Hash {
-					neededPacks[blob.PackHash] = true
-					break
+		// Check if file matches any prefix
+		for _, prefix := range prefixes {
+			if strings.HasPrefix(file.Name, prefix) {
+				// Find which pack contains this file's blob
+				for _, blob := range w.Blobs {
+					if blob.Hash == file.Hash {
+						neededPacks[blob.PackHash] = true
+						break
+					}
 				}
+				break // Don't check other prefixes for this file
 			}
 		}
 	}
