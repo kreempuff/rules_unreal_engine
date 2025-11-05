@@ -122,10 +122,11 @@ def _unreal_engine_impl(repo_ctx):
     # TODO: Remove once validated - need full extraction for real builds
     # Multiple prefixes needed for UBT:
     # - Engine/Binaries/ThirdParty/DotNet (dotnet runtime)
+    # - Engine/Binaries/DotNET (Ionic.Zip.Reduced.dll and other .NET binaries for UBT)
     # - Engine/Source/Programs (UBT source + .props files from gitDeps)
-    # Note: gitDeps doesn't support multiple prefixes in one call, so we'll download/extract separately
     prefixes = [
         "Engine/Binaries/ThirdParty/DotNet",
+        "Engine/Binaries/DotNET",
         "Engine/Source/Programs",
     ]
 
@@ -267,6 +268,37 @@ exports_files([
 
     # Create main build file
     repo_ctx.file("UnrealEngine/BUILD", """exports_files(["Setup.sh"])""")
+
+    # Install BUILD files from ue_modules/ into the cloned repo
+    # This makes UE modules available as deps (e.g., @unreal_engine_source//UnrealEngine/Engine/Source/Runtime/Core)
+    print("Installing BUILD files from ue_modules/...")
+
+    # Find all BUILD.bazel files in ue_modules/
+    ue_modules_root = repo_ctx.path(Label("//:ue_modules"))
+    result = repo_ctx.execute(["find", str(ue_modules_root), "-name", "BUILD.bazel", "-type", "f"])
+    if result.return_code != 0:
+        fail("Failed to find BUILD files: " + result.stderr)
+
+    build_files = result.stdout.strip().split("\n")
+    installed_count = 0
+    for build_file_path in build_files:
+        if not build_file_path:  # Skip empty lines
+            continue
+
+        # Extract relative path from ue_modules/
+        # e.g., /path/to/ue_modules/Runtime/Core/BUILD.bazel -> Runtime/Core/BUILD.bazel
+        rel_path = build_file_path.replace(str(ue_modules_root) + "/", "")
+
+        # Target path in UnrealEngine clone
+        # Runtime/Core/BUILD.bazel -> UnrealEngine/Engine/Source/Runtime/Core/BUILD.bazel
+        target_path = "UnrealEngine/Engine/Source/" + rel_path
+
+        # Read and copy the BUILD file (hermetic)
+        build_content = repo_ctx.read(build_file_path)
+        repo_ctx.file(target_path, build_content)
+        installed_count += 1
+
+    print("Installed {} BUILD files from ue_modules/".format(installed_count))
 
 unreal_engine = repository_rule(
     implementation = _unreal_engine_impl,
