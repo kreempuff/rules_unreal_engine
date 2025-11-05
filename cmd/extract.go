@@ -9,7 +9,10 @@ import (
 	"kreempuff.dev/rules-unreal-engine/pkg/gitDeps"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"sync"
+	"sync/atomic"
 )
 
 var extractCmd = &cobra.Command{
@@ -60,68 +63,120 @@ that were downloaded using Bazel's HTTP cache (repo_ctx.download).`,
 			logrus.Infof("prefix filters %v: extracting %d/%d files", prefixes, len(filtered), len(manifest.Files))
 		}
 
-		// Extract each pack
-		for i, pack := range manifest.Packs {
-			if i%100 == 0 {
-				logrus.Infof("extracting pack %d/%d", i+1, len(manifest.Packs))
-			}
+		// Extract packs in parallel using worker pool (one worker per CPU)
+		numWorkers := runtime.NumCPU()
+		logrus.Infof("extracting %d packs using %d workers", len(manifest.Packs), numWorkers)
 
-			// Find the downloaded pack file
-			packFile := filepath.Join(packsDir, fmt.Sprintf("%s.pack.gz", pack.Hash))
+		// Create work queue and error channel
+		type packJob struct {
+			index int
+			pack  gitDeps.Pack
+		}
+		packQueue := make(chan packJob, numWorkers*2)
+		errorChan := make(chan error, len(manifest.Packs))
+		var wg sync.WaitGroup
+		var processed atomic.Int64
 
-			// Check if pack exists
-			if _, err := os.Stat(packFile); os.IsNotExist(err) {
-				logrus.Warnf("pack file not found: %s", packFile)
-				continue
-			}
+		// Start worker pool
+		for w := 0; w < numWorkers; w++ {
+			wg.Add(1)
+			go func(workerID int) {
+				defer wg.Done()
 
-			// Open and decompress the pack
-			f, err := os.Open(packFile)
-			if err != nil {
-				logrus.Errorf("failed to open pack %s: %s", packFile, err)
-				logrus.Exit(UnknownExitCode)
-			}
+				for job := range packQueue {
+					pack := job.pack
+					packFile := filepath.Join(packsDir, fmt.Sprintf("%s.pack.gz", pack.Hash))
 
-			gzr, err := gzip.NewReader(f)
-			if err != nil {
-				f.Close()
-				logrus.Errorf("failed to decompress pack %s: %s", packFile, err)
-				logrus.Exit(UnknownExitCode)
-			}
+					// Check if pack exists
+					if _, err := os.Stat(packFile); os.IsNotExist(err) {
+						logrus.Warnf("pack file not found: %s", packFile)
+						processed.Add(1)
+						continue
+					}
 
-			// Read decompressed data
-			packData, err := io.ReadAll(gzr)
-			gzr.Close()
-			f.Close()
+					// Open and decompress the pack
+					f, err := os.Open(packFile)
+					if err != nil {
+						errorChan <- fmt.Errorf("failed to open pack %s: %w", packFile, err)
+						processed.Add(1)
+						continue
+					}
 
-			if err != nil {
-				logrus.Errorf("failed to read pack %s: %s", packFile, err)
-				logrus.Exit(UnknownExitCode)
-			}
+					gzr, err := gzip.NewReader(f)
+					if err != nil {
+						f.Close()
+						errorChan <- fmt.Errorf("failed to decompress pack %s: %w", packFile, err)
+						processed.Add(1)
+						continue
+					}
 
-			// Find blobs and files for this pack
-			var packBlobs []gitDeps.Blob
-			for _, blob := range manifest.Blobs {
-				if blob.PackHash == pack.Hash {
-					packBlobs = append(packBlobs, blob)
-				}
-			}
+					// Read decompressed data
+					packData, err := io.ReadAll(gzr)
+					gzr.Close()
+					f.Close()
 
-			var packFiles []gitDeps.File
-			for _, file := range filesToExtract {
-				for _, blob := range packBlobs {
-					if file.Hash == blob.Hash {
-						packFiles = append(packFiles, file)
-						break
+					if err != nil {
+						errorChan <- fmt.Errorf("failed to read pack %s: %w", packFile, err)
+						processed.Add(1)
+						continue
+					}
+
+					// Find blobs and files for this pack
+					var packBlobs []gitDeps.Blob
+					for _, blob := range manifest.Blobs {
+						if blob.PackHash == pack.Hash {
+							packBlobs = append(packBlobs, blob)
+						}
+					}
+
+					var packFiles []gitDeps.File
+					for _, file := range filesToExtract {
+						for _, blob := range packBlobs {
+							if file.Hash == blob.Hash {
+								packFiles = append(packFiles, file)
+								break
+							}
+						}
+					}
+
+					// Extract files from pack
+					if err := gitDeps.ExtractUEPack(packData, packBlobs, packFiles, outputDir, *manifest); err != nil {
+						errorChan <- fmt.Errorf("failed to extract pack %s: %w", pack.Hash, err)
+						processed.Add(1)
+						continue
+					}
+
+					// Log progress every 100 packs
+					count := processed.Add(1)
+					if count%100 == 0 {
+						logrus.Infof("extracted %d/%d packs", count, len(manifest.Packs))
 					}
 				}
-			}
+			}(w)
+		}
 
-			// Extract files from pack
-			if err := gitDeps.ExtractUEPack(packData, packBlobs, packFiles, outputDir, *manifest); err != nil {
-				logrus.Errorf("failed to extract pack %s: %s", pack.Hash, err)
-				logrus.Exit(UnknownExitCode)
+		// Send all packs to work queue
+		for i, pack := range manifest.Packs {
+			packQueue <- packJob{index: i, pack: pack}
+		}
+		close(packQueue)
+
+		// Wait for all workers to finish
+		wg.Wait()
+		close(errorChan)
+
+		// Check for errors
+		var errors []error
+		for err := range errorChan {
+			errors = append(errors, err)
+		}
+
+		if len(errors) > 0 {
+			logrus.Errorf("encountered %d errors during extraction:", len(errors))
+			for _, err := range errors {
+				logrus.Error(err)
 			}
+			logrus.Exit(UnknownExitCode)
 		}
 
 		logrus.Info("all packs extracted successfully")
