@@ -4,6 +4,7 @@ This replaces UnrealBuildTool's .Build.cs files with native Bazel rules.
 """
 
 load("@rules_cc//cc:defs.bzl", "cc_library")
+load("//bzl:uht.bzl", "uht_codegen")
 
 def _generate_uht_outputs(name, hdrs):
     """Generate list of expected UHT output files.
@@ -41,91 +42,7 @@ def _generate_uht_outputs(name, hdrs):
 
     return outputs
 
-def _generate_uht_files(name, hdrs, module_type, uht_outputs):
-    """Generate UHT genrules for code generation.
-
-    Creates:
-    1. Manifest genrule (.uhtmanifest JSON)
-    2. Uproject genrule (.uproject stub)
-    3. UHT codegen genrule (runs UHT, generates reflection code)
-    """
-    # TODO: Use repo rule to determine correct external repo name
-    # For now, assume @unreal_engine_source
-    ue_repo = "@unreal_engine_source"
-
-    # Generate manifest
-    hdrs_json = '", "'.join(hdrs)
-    manifest_content = """{
-  "IsGameTarget": true,
-  "RootLocalPath": "/tmp/uht",
-  "TargetName": "BazelTarget",
-  "Modules": [{
-    "Name": "%s",
-    "ModuleType": "Engine%s",
-    "BaseDirectory": "/tmp/uht",
-    "IncludePaths": ["Public", "Private"],
-    "OutputDirectory": "/tmp/uht/generated",
-    "PublicHeaders": ["%s"],
-    "GeneratedCPPFilenameBase": "/tmp/uht/generated/%s.gen",
-    "SaveExportedHeaders": true,
-    "UHTGeneratedCodeVersion": "None"
-  }]
-}""" % (name, module_type, hdrs_json, name)
-
-    native.genrule(
-        name = name + "_uht_manifest",
-        outs = [name + ".uhtmanifest"],
-        cmd = "cat > $@ <<'EOF'\n" + manifest_content + "\nEOF",
-    )
-
-    # Generate uproject
-    native.genrule(
-        name = name + "_uht_uproject",
-        outs = [name + ".uproject"],
-        cmd = """cat > $@ <<'EOF'
-{
-  "FileVersion": 3,
-  "EngineAssociation": "5.5",
-  "Modules": [{"Name": "%s", "Type": "Runtime"}]
-}
-EOF
-""" % name,
-    )
-
-    # Generate UHT code (single genrule outputs all files)
-    # MVP: Hardcode Mac ARM64 for now, add platform detection later
-    # TODO: Support other platforms (mac-x64, linux-arm64, linux-x64, windows)
-    native.genrule(
-        name = name + "_uht",
-        srcs = hdrs + [":" + name + "_uht_manifest", ":" + name + "_uht_uproject"],
-        outs = uht_outputs,
-        tools = [
-            Label("//tools:uht_wrapper.sh"),  # Resolves to rules_unreal_engine repo
-            # MVP: Mac ARM64 only
-            # TODO: Add select() alternative for platform detection
-            ue_repo + "//UnrealEngine/Engine/Binaries/ThirdParty/DotNet/8.0.300/mac-arm64:dotnet",
-            ue_repo + "//UnrealEngine/Engine/Binaries/DotNET/UnrealBuildTool:UnrealBuildTool.dll",
-        ],
-        cmd = """
-            # Create empty placeholders for all outputs
-            for f in $(OUTS); do touch $$f; done
-
-            # Run UHT wrapper (TEMPORARY - uses Epic's .NET UHT)
-            # TODO: Replace with Go UHT implementation
-            WRAPPER=$(location {wrapper})
-            DOTNET=$(location {ue_repo}//UnrealEngine/Engine/Binaries/ThirdParty/DotNet/8.0.300/mac-arm64:dotnet)
-            UBT=$(location {ue_repo}//UnrealEngine/Engine/Binaries/DotNET/UnrealBuildTool:UnrealBuildTool.dll)
-            PROJECT=$(location :{name}_uht_uproject)
-            MANIFEST=$(location :{name}_uht_manifest)
-
-            $$WRAPPER $$DOTNET $$UBT $$PROJECT $$MANIFEST || true
-
-            # TODO: Copy generated files from UHT output dir to Bazel output dir
-            # UHT writes to OutputDirectory in manifest (/tmp/uht/generated/)
-            # Need to copy to $$(@D)/
-        """.format(wrapper = Label("//tools:uht_wrapper.sh"), ue_repo = ue_repo, name = name),
-        tags = ["uht", "codegen"],
-    )
+# Old genrule-based UHT implementation removed - now using uht_codegen custom rule (bzl/uht.bzl)
 
 def ue_module(
         name,
@@ -314,15 +231,18 @@ def ue_module(
     # Generate UHT code for reflection (UCLASS/USTRUCT/UENUM)
     # Automatically disabled for ThirdParty modules
     if _enable_uht:
-        # UHT runs on all modules but no-ops if no macros present (generates empty files)
-        uht_outputs = _generate_uht_outputs(name, hdrs)
+        # Use custom uht_codegen rule (replaces genrule approach)
+        ue_repo = "@unreal_engine_source"
+        uht_codegen(
+            name = name + "_uht",
+            module_name = name,
+            module_type = module_type,
+            hdrs = hdrs,
+            dotnet = ue_repo + "//UnrealEngine/Engine/Binaries/ThirdParty/DotNet/8.0.300/mac-arm64:dotnet",
+            ubt = ue_repo + "//UnrealEngine/Engine/Binaries/DotNET/UnrealBuildTool:UnrealBuildTool.dll",
+        )
 
-        # Create manifest and uproject for UHT
-        _generate_uht_files(name, hdrs, module_type, uht_outputs)
-
-        # Add UHT genrule as dependency
-        # The genrule provides all generated files (.h and .cpp) as outputs
-        # Bazel will include them in hdrs/srcs automatically via the genrule target
+        # Add UHT outputs as dependency
         hdrs = hdrs + [":" + name + "_uht"]
 
         # Add UHT genrule to sources for .cpp files (.init.gen.cpp, .gen.cpp)
