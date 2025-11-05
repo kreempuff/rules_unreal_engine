@@ -3,12 +3,10 @@
 
 # Setup: Build the binary once before all tests
 setup_file() {
-    export BINARY="$BATS_TEST_DIRNAME/../bazel-bin/rules_unreal_engine_/rules_unreal_engine"
+    # Always build to ensure bazel-bin symlink is fresh (fast with cache)
+    cd "$BATS_TEST_DIRNAME/.." && bazel build //:rules_unreal_engine >&2
 
-    # Build if not exists
-    if [ ! -f "$BINARY" ]; then
-        cd "$BATS_TEST_DIRNAME/.." && bazel build //:rules_unreal_engine
-    fi
+    export BINARY="$BATS_TEST_DIRNAME/../bazel-bin/rules_unreal_engine_/rules_unreal_engine"
 
     # Create test data directory
     export TEST_DATA_DIR="$BATS_TEST_DIRNAME/data"
