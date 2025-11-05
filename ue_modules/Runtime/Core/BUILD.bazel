@@ -11,14 +11,14 @@ Core is the foundation module for all of UE. It provides:
 Converted from: Engine/Source/Runtime/Core/Core.Build.cs
 """
 
-load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
 load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
 
 # Core module
 # Note: Core_headers is now auto-created by ue_module (all modules get _headers targets)
 ue_module(
     name = "Core",
-    module_type = "Runtime",
+    additional_hdrs = ["Private/Compression/lz4.cpp"],  # Unity build: included by lz4hc.cpp
 
     # Unity build pattern: lz4.cpp is included by lz4hc.cpp, not compiled separately
     # Exclude files requiring other modules to be fully built (7 remaining)
@@ -33,16 +33,7 @@ ue_module(
         "Private/Serialization/Archive.cpp",  # TODO: Build TargetPlatform module (needs TARGETPLATFORM_API)
         "Private/Serialization/MemoryImage.cpp",  # TODO: Build TargetPlatform module
     ],
-    additional_hdrs = ["Private/Compression/lz4.cpp"],  # Unity build: included by lz4hc.cpp
-
-    # From Core.Build.cs: PublicDependencyModuleNames
-    # Note: Core_headers is for EXTERNAL modules to depend on
-    # Core itself auto-discovers its own headers via ue_module
-    public_deps = [
-        "//Engine/Source/Runtime/TraceLog",
-        "//Engine/Source/ThirdParty/GuidelinesSupportLibrary",
-        "//Engine/Source/ThirdParty/AtomicQueue",
-    ],
+    module_type = "Runtime",
 
     # From Core.Build.cs: PrivateDependencyModuleNames
     private_deps = [
@@ -67,5 +58,13 @@ ue_module(
         "../..",  # Engine/Source (for absolute-style includes like "Runtime/Core/Private/...")
     ],
 
+    # From Core.Build.cs: PublicDependencyModuleNames
+    # Note: Core_headers is for EXTERNAL modules to depend on
+    # Core itself auto-discovers its own headers via ue_module
+    public_deps = [
+        "//Engine/Source/Runtime/TraceLog",
+        "//Engine/Source/ThirdParty/GuidelinesSupportLibrary",
+        "//Engine/Source/ThirdParty/AtomicQueue",
+    ],
     visibility = ["//visibility:public"],
 )

@@ -15,8 +15,10 @@ cc_library(
 
     # Make accessible via "Runtime/Launch/Resources/Version.h" include style
     includes = ["../.."],  # Engine/Source
-
+    tags = [
+        "header-only",
+        "launch",
+        "minimal",
+    ],
     visibility = ["//visibility:public"],
-
-    tags = ["launch", "minimal", "header-only"],
 )

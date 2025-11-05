@@ -10,7 +10,16 @@ load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
 
 ue_module(
     name = "TraceLog",
+
+    # From TraceLog.Build.cs
+    local_defines = [
+        "SUPPRESS_PER_MODULE_INLINE_FILE",  # Doesn't use Core's operator new/delete
+    ],
     module_type = "Runtime",
+
+    # TraceLog vendors LZ4 in Private/Trace/LZ4/
+    # Need to add Private/Trace to includes so Codec.cpp can find "LZ4/lz4.c.inl"
+    private_includes = ["Private/Trace"],
 
     # From TraceLog.Build.cs: PublicIncludePathModuleNames.Add("Core")
     # TraceLog needs Core's headers (HAL/Platform.h) but doesn't link against Core
@@ -23,15 +32,5 @@ ue_module(
         "//Engine/Source/Runtime/Core:Core_headers",
         "//Engine/Source/Runtime/AutoRTFM",  # Needs AutoRTFM.h header
     ],
-
-    # TraceLog vendors LZ4 in Private/Trace/LZ4/
-    # Need to add Private/Trace to includes so Codec.cpp can find "LZ4/lz4.c.inl"
-    private_includes = ["Private/Trace"],
-
-    # From TraceLog.Build.cs
-    local_defines = [
-        "SUPPRESS_PER_MODULE_INLINE_FILE",  # Doesn't use Core's operator new/delete
-    ],
-
     visibility = ["//visibility:public"],
 )

@@ -1,0 +1,7 @@
+"""Build tools for rules_unreal_engine"""
+
+# UHT wrapper script (TEMPORARY - will be replaced with Go UHT)
+exports_files([
+    "uht_wrapper.sh",
+    "install_builds.sh",
+])

@@ -9,7 +9,6 @@ load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
 
 ue_module(
     name = "GuidelinesSupportLibrary",
-    module_type = "ThirdParty",
 
     # Header-only library
     srcs = [],
@@ -22,12 +21,12 @@ ue_module(
         allow_empty = True,
     ),
 
+    # From GuidelinesSupportLibrary.Build.cs: PublicDefinitions
+    defines = ["GSL_NO_IOSTREAMS"],
+    module_type = "ThirdParty",
+
     # From GuidelinesSupportLibrary.Build.cs: PublicSystemIncludePaths
     # Point to the include directory within the GSL library
     public_includes = ["GSL-1144/include"],
-
-    # From GuidelinesSupportLibrary.Build.cs: PublicDefinitions
-    defines = ["GSL_NO_IOSTREAMS"],
-
     visibility = ["//visibility:public"],
 )

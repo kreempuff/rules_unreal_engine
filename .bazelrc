@@ -2,3 +2,9 @@
 
 common --experimental_ui_max_stdouterr_bytes=50000000
 common:ci --disk_cache=~/.cache/bazel --experimental_ui_max_stdouterr_bytes=50000000
+
+# Remote cache configuration (bazel-remote + MinIO)
+# Use --config=cache to enable (not enabled by default to avoid CI failures)
+build:cache --remote_cache=grpc://localhost:9092
+build:cache --remote_upload_local_results=true
+build:cache --experimental_remote_downloader=grpc://localhost:9092

@@ -1,0 +1,35 @@
+{
+  "IsGameTarget": true,
+  "RootLocalPath": "/Users/kareemmarch/projects/rules_unreal_engine",
+  "TargetName": "TestTarget",
+  "ExternalDependenciesFile": "/Users/kareemmarch/projects/rules_unreal_engine/test/uht_test/TestTarget.deps",
+  "Modules": [
+    {
+      "Name": "TestModule",
+      "ModuleType": "EngineRuntime",
+      "OverrideModuleType": "None",
+      "BaseDirectory": "/Users/kareemmarch/projects/rules_unreal_engine/test/uht_test",
+      "IncludePaths": [
+        "/Users/kareemmarch/projects/rules_unreal_engine/test/uht_test/Public",
+        "/Users/kareemmarch/projects/rules_unreal_engine/test/uht_test/Private"
+      ],
+      "OutputDirectory": "/Users/kareemmarch/projects/rules_unreal_engine/test/uht_test/generated",
+      "ClassesHeaders": [],
+      "PublicHeaders": [
+        "/Users/kareemmarch/projects/rules_unreal_engine/test/uht_test/Public/TestEnum.h"
+      ],
+      "InternalHeaders": [],
+      "PrivateHeaders": [],
+      "PublicDefines": [],
+      "GeneratedCPPFilenameBase": "/Users/kareemmarch/projects/rules_unreal_engine/test/uht_test/generated/TestModule.gen",
+      "SaveExportedHeaders": true,
+      "UHTGeneratedCodeVersion": "None",
+      "VersePath": "",
+      "VerseScope": "PublicUser",
+      "HasVerse": false,
+      "VerseMountPoint": "",
+      "AlwaysExportStructs": true,
+      "AlwaysExportEnums": true
+    }
+  ]
+}

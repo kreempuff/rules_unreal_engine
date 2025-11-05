@@ -10,11 +10,6 @@ load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
 
 ue_module(
     name = "BuildSettings",
-    module_type = "Runtime",
-
-    # From BuildSettings.Build.cs: PrivateIncludePathModuleNames.Add("Core")
-    # Needs Core headers but doesn't link (header-only dependency)
-    public_deps = ["//Engine/Source/Runtime/Core:Core_headers"],
 
     # From BuildSettings.Build.cs
     # Dynamic build-time defines (UBT generates these at compile time)
@@ -52,6 +47,10 @@ ue_module(
         "UE_PERSISTENT_ALLOCATOR_RESERVE_SIZE=0",
         'UE_VFS_PATHS=\\"\\"',
     ],
+    module_type = "Runtime",
 
+    # From BuildSettings.Build.cs: PrivateIncludePathModuleNames.Add("Core")
+    # Needs Core headers but doesn't link (header-only dependency)
+    public_deps = ["//Engine/Source/Runtime/Core:Core_headers"],
     visibility = ["//visibility:public"],
 )

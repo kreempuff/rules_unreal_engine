@@ -11,9 +11,9 @@ cc_library(
     # xxhash is header-only in UE (Build.cs only adds include path)
     # Implementation can be included via XXH_INLINE_ALL or XXH_STATIC_LINKING_ONLY
     hdrs = [
-        "xxhash.h",
         "xxh3.h",
         "xxh_x86dispatch.h",
+        "xxhash.h",
     ],
 
     # No srcs - header-only library
@@ -26,8 +26,10 @@ cc_library(
     # Make headers available from the root of this module
     includes = ["."],
 
-    visibility = ["//visibility:public"],
-
     # Mark as external third-party code
-    tags = ["third_party", "xxhash"],
+    tags = [
+        "third_party",
+        "xxhash",
+    ],
+    visibility = ["//visibility:public"],
 )

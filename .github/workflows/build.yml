@@ -68,7 +68,7 @@ jobs:
       - name: Build rules_unreal_engine binary
         run: bazel build //:rules_unreal_engine
 
-      - name: Run BATS integration tests
+      - name: Run BATS tests
         run: |
-          bats test/gitdeps.bats
-          bats test/ue_module.bats
+          bats test/unit/gitdeps.bats
+          bats test/module/ue_module.bats

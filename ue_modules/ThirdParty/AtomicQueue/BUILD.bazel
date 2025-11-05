@@ -9,16 +9,15 @@ load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
 
 ue_module(
     name = "AtomicQueue",
-    module_type = "ThirdParty",
 
     # Header-only module
     srcs = [],
     hdrs = ["AtomicQueue.h"],
+    module_type = "ThirdParty",
 
     # Make header accessible via <AtomicQueue.h> (system include)
     public_includes = ["."],
 
     # No dependencies - standalone header-only library
-
     visibility = ["//visibility:public"],
 )

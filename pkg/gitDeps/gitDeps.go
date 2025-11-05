@@ -146,9 +146,47 @@ func GetPackfromFileName(filename string, w WorkingManifest) *Pack {
 
 // GetPackUrls returns a list of urls for all the packs in a manifest file
 func GetPackUrls(w WorkingManifest) []string {
+	return GetPackUrlsWithPrefix(w, "")
+}
+
+func GetPackUrlsWithPrefix(w WorkingManifest, prefix string) []string {
+	return GetPackUrlsWithPrefixes(w, []string{prefix})
+}
+
+func GetPackUrlsWithPrefixes(w WorkingManifest, prefixes []string) []string {
+	// If no prefixes, return all packs
+	if len(prefixes) == 0 || (len(prefixes) == 1 && prefixes[0] == "") {
+		var urls []string
+		for _, p := range w.Packs {
+			urls = append(urls, fmt.Sprintf("%s/%s/%s", w.BaseUrl, p.RemotePath, p.Hash))
+		}
+		return urls
+	}
+
+	// Build map of PackHash -> bool (packs that contain files matching any prefix)
+	neededPacks := make(map[string]bool)
+	for _, file := range w.Files {
+		// Check if file matches any prefix
+		for _, prefix := range prefixes {
+			if strings.HasPrefix(file.Name, prefix) {
+				// Find which pack contains this file's blob
+				for _, blob := range w.Blobs {
+					if blob.Hash == file.Hash {
+						neededPacks[blob.PackHash] = true
+						break
+					}
+				}
+				break // Don't check other prefixes for this file
+			}
+		}
+	}
+
+	// Return URLs only for needed packs
 	var urls []string
 	for _, p := range w.Packs {
-		urls = append(urls, fmt.Sprintf("%s/%s/%s", w.BaseUrl, p.RemotePath, p.Hash))
+		if neededPacks[p.Hash] {
+			urls = append(urls, fmt.Sprintf("%s/%s/%s", w.BaseUrl, p.RemotePath, p.Hash))
+		}
 	}
 	return urls
 }
@@ -244,8 +282,12 @@ func ExtractUEPack(packData []byte, blobs []Blob, files []File, targetDir string
 			return fmt.Errorf("failed to create directory for %s: %w", file.Name, err)
 		}
 
-		// Write file
-		if err := os.WriteFile(targetPath, fileData, 0644); err != nil {
+		// Write file with appropriate permissions
+		fileMode := os.FileMode(0644)
+		if file.IsExecutable {
+			fileMode = 0755
+		}
+		if err := os.WriteFile(targetPath, fileData, fileMode); err != nil {
 			return fmt.Errorf("failed to write file %s: %w", file.Name, err)
 		}
 

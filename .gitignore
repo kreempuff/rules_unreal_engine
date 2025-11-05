@@ -26,5 +26,11 @@ Thumbs.db
 test/data/
 *.bats.tmp
 
+# UHT generated files (test only - will be in bazel-bin in real builds)
+test/uht_test/generated/
+test/uht_test/Intermediate/
+test/uht_test/Saved/
+test/uht_test/*.deps
+
 # Test UE clone (persistent for E2E tests)
 .test_ue/UnrealEngine/

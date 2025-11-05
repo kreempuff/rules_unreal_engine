@@ -10,13 +10,6 @@ load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
 
 ue_module(
     name = "Projects",
-    module_type = "Runtime",
-
-    # From Projects.Build.cs: PublicDependencyModuleNames
-    public_deps = [
-        "//Engine/Source/Runtime/Core",
-        "//Engine/Source/Runtime/Json",
-    ],
 
     # Game build configuration (non-editor, non-monolithic)
     # Editor builds would require DesktopPlatform for plugin receipts
@@ -32,6 +25,12 @@ ue_module(
         "UBT_TARGET_DISABLED_PLUGINS=",
         "UBT_TARGET_BUILD_PLUGINS=",
     ],
+    module_type = "Runtime",
 
+    # From Projects.Build.cs: PublicDependencyModuleNames
+    public_deps = [
+        "//Engine/Source/Runtime/Core",
+        "//Engine/Source/Runtime/Json",
+    ],
     visibility = ["//visibility:public"],
 )

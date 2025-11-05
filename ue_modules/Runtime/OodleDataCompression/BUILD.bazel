@@ -11,15 +11,6 @@ OODLE_VERSION = "2.9.13"
 cc_library(
     name = "OodleDataCompression",
 
-    # Public headers
-    hdrs = glob([
-        "Sdks/{}/include/*.h".format(OODLE_VERSION),
-    ]),
-
-    # From OodleDataCompression.Build.cs:31
-    # PublicSystemIncludePaths.Add(IncludeDirectory)
-    includes = ["Sdks/{}/include".format(OODLE_VERSION)],
-
     # Platform-specific precompiled libraries
     # From OodleDataCompression.Build.cs:49-53 (Mac)
     srcs = select({
@@ -35,12 +26,24 @@ cc_library(
         "//conditions:default": [],
     }),
 
+    # Public headers
+    hdrs = glob([
+        "Sdks/{}/include/*.h".format(OODLE_VERSION),
+    ]),
+
+    # From OodleDataCompression.Build.cs:31
+    # PublicSystemIncludePaths.Add(IncludeDirectory)
+    includes = ["Sdks/{}/include".format(OODLE_VERSION)],
+
+    # Mark as external third-party library
+    tags = [
+        "oodle",
+        "precompiled",
+        "third_party",
+    ],
+
     # Note: Debug libraries available but not used by default
     # liboo2coremac64_dbg.a, oo2core_win64_debug.lib, etc.
     # Set bAllowDebugLibrary = true in .Build.cs to enable
-
     visibility = ["//visibility:public"],
-
-    # Mark as external third-party library
-    tags = ["third_party", "oodle", "precompiled"],
 )

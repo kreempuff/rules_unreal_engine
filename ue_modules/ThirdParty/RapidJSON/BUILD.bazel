@@ -20,8 +20,10 @@ cc_library(
     # Make accessible via <rapidjson/document.h> style includes
     # The .Build.cs exposes "ThirdParty/RapidJSON/1.1.0" as system include
     includes = ["1.1.0"],
-
+    tags = [
+        "header-only",
+        "rapidjson",
+        "third-party",
+    ],
     visibility = ["//visibility:public"],
-
-    tags = ["third-party", "header-only", "rapidjson"],
 )

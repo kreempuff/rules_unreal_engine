@@ -1,14 +1,97 @@
-def _parse_pack_urls(repo_ctx, manifest_path):
-    """Parse .gitdeps XML and return list of pack URLs using gitDeps tool"""
-    gitdeps_binary = repo_ctx.path(repo_ctx.attr._gitdeps_tool)
+def _build_gitdeps(repo_ctx):
+    """Build gitDeps tool using downloaded Go SDK (hermetic, during loading phase).
 
-    result = repo_ctx.execute([
+    Repository rules cannot use Bazel-built binaries (they run during loading phase).
+    Solution: Download Go SDK and compile gitDeps directly, same pattern as rules_go/Gazelle.
+    """
+    # Detect platform
+    os_name = repo_ctx.os.name.lower()
+    os_arch = repo_ctx.os.arch.lower()
+
+    # Map to Go SDK platform names
+    if "mac" in os_name or "darwin" in os_name:
+        if "aarch64" in os_arch or "arm64" in os_arch:
+            go_platform = "darwin-arm64"
+        else:
+            go_platform = "darwin-amd64"
+    elif "linux" in os_name:
+        if "aarch64" in os_arch or "arm64" in os_arch:
+            go_platform = "linux-arm64"
+        else:
+            go_platform = "linux-amd64"
+    else:
+        # TODO: Add Windows support (windows-amd64, windows-arm64)
+        fail("Unsupported platform: {} {}. Windows support coming soon.".format(os_name, os_arch))
+
+    # Download Go SDK (version 1.24.3 - matches rules_go version, hermetic)
+    # SHA256s verified from https://go.dev/dl/ (2025-11-03)
+    go_version = "1.24.3"
+    go_sdk_url = "https://go.dev/dl/go{}.{}.tar.gz".format(go_version, go_platform)
+
+    # SHA256 checksums for Go 1.24.3 (from https://go.dev/dl/)
+    go_sha256 = {
+        "darwin-arm64": "64a3fa22142f627e78fac3018ce3d4aeace68b743eff0afda8aae0411df5e4fb",
+        "darwin-amd64": "13e6fe3fcf65689d77d40e633de1e31c6febbdbcb846eb05fc2434ed2213e92b",
+        "linux-arm64": "a463cb59382bd7ae7d8f4c68846e73c4d589f223c589ac76871b66811ded7836",
+        "linux-amd64": "3333f6ea53afa971e9078895eaa4ac7204a8c6b5c68c10e6bc9a33e8e391bdd8",
+        # TODO: Add Windows support
+        # "windows-amd64": "...",
+        # "windows-arm64": "...",
+    }
+
+    print("Downloading Go SDK {} for {}...".format(go_version, go_platform))
+    repo_ctx.download_and_extract(
+        url = go_sdk_url,
+        sha256 = go_sha256[go_platform],
+        stripPrefix = "go",
+        output = "_go_sdk",
+    )
+
+    go_binary = repo_ctx.path("_go_sdk/bin/go")
+
+    # Build gitDeps using downloaded Go SDK
+    print("Building gitDeps tool...")
+    gitdeps_src_dir = repo_ctx.path(Label("//:go.mod")).dirname
+    gitdeps_binary = repo_ctx.path("_gitdeps")
+
+    # Run 'go build' from the gitDeps source directory (where go.mod lives)
+    # Set fresh cache directories to avoid Go version mismatch issues
+    go_cache = repo_ctx.path("_go_cache")
+    go_mod_cache = repo_ctx.path("_go_mod_cache")
+
+    result = repo_ctx.execute(
+        [go_binary, "build", "-o", str(gitdeps_binary), "."],
+        working_directory = str(gitdeps_src_dir),
+        environment = {
+            "GOCACHE": str(go_cache),
+            "GOMODCACHE": str(go_mod_cache),
+        },
+    )
+    if result.return_code != 0:
+        fail("Failed to build gitDeps:\nstdout: {}\nstderr: {}".format(result.stdout, result.stderr))
+
+    print("gitDeps built successfully")
+    return gitdeps_binary
+
+def _parse_pack_urls(repo_ctx, gitdeps_binary, manifest_path, prefixes):
+    """Parse .gitdeps XML and return list of pack URLs using gitDeps tool
+
+    Args:
+        prefixes: List of path prefixes (e.g., ["Engine/Binaries", "Engine/Source/Programs"])
+    """
+    args = [
         gitdeps_binary,
         "gitDeps",
         "printUrls",
         "--input", manifest_path,
         "--output", "json",
-    ])
+    ]
+
+    # Add all prefixes (gitDeps now supports multiple --prefix flags)
+    for prefix in prefixes:
+        args.extend(["--prefix", prefix])
+
+    result = repo_ctx.execute(args)
 
     if result.return_code != 0:
         fail("Failed to parse manifest: " + result.stderr)
@@ -21,6 +104,9 @@ def _unreal_engine_impl(repo_ctx):
     repo_ctx.file("WORKSPACE", "")
     repo_ctx.file("BUILD", """""")
 
+    # Build gitDeps tool (downloads Go SDK, compiles gitDeps during loading phase)
+    gitdeps_binary = _build_gitdeps(repo_ctx)
+
     # Clone Unreal Engine repository
     print("Cloning Unreal Engine from: " + repo_ctx.attr.git_repository)
     exec_result = repo_ctx.execute(
@@ -32,25 +118,41 @@ def _unreal_engine_impl(repo_ctx):
 
     manifest_path = "UnrealEngine/Engine/Build/Commit.gitdeps.xml"
 
+    # TEMPORARY: Hardcoded prefixes for UBT testing
+    # TODO: Remove once validated - need full extraction for real builds
+    # Multiple prefixes needed for UBT:
+    # - Engine/Binaries/ThirdParty/DotNet (dotnet runtime)
+    # - Engine/Binaries/DotNET (Ionic.Zip.Reduced.dll and other .NET binaries for UBT)
+    # - Engine/Source/Programs (UBT source + .props files from gitDeps)
+    prefixes = [
+        "Engine/Binaries/ThirdParty/DotNet",
+        "Engine/Binaries/DotNET",
+        "Engine/Source/Programs",
+    ]
+
     if repo_ctx.attr.use_bazel_downloader:
         # Bazel-native approach: Use repo_ctx.download() for HTTP caching
         print("Downloading dependencies using Bazel HTTP cache...")
 
-        # Parse manifest to get pack URLs
-        pack_urls = _parse_pack_urls(repo_ctx, manifest_path)
+        # Parse manifest to get pack URLs for all prefixes
+        # gitDeps now handles multiple prefixes internally (deduplication, etc.)
+        pack_urls = _parse_pack_urls(repo_ctx, gitdeps_binary, manifest_path, prefixes)
         pack_count = len(pack_urls)
-        print("Found {} packs to download".format(pack_count))
+        print("Found {} unique packs for prefixes: {}".format(pack_count, ", ".join(prefixes)))
 
         # Download each pack using Bazel's downloader (gets cached!)
         repo_ctx.file("packs/.gitkeep", "")
         for i, url in enumerate(pack_urls):
             # Extract hash from URL (last component)
+            # URLs from gitDeps are just the hash, not hash.pack.gz
+            # e.g., https://cdn.../ABC123 (not ABC123.pack.gz)
             hash = url.split("/")[-1]
 
             if i % 100 == 0:
                 print("Downloading pack {}/{}".format(i + 1, pack_count))
 
             # Download pack (Bazel caches this!)
+            # Add .pack.gz extension because gitDeps expects it
             repo_ctx.download(
                 url = url,
                 output = "packs/{}.pack.gz".format(hash),
@@ -60,27 +162,33 @@ def _unreal_engine_impl(repo_ctx):
 
         print("All packs downloaded, extracting...")
 
-        # Extract all packs using gitDeps
-        gitdeps_binary = repo_ctx.path(repo_ctx.attr._gitdeps_tool)
+        # Extract packs with all prefixes at once
+        # gitDeps extract now supports multiple --prefix flags
+        extract_args = [
+            gitdeps_binary,
+            "extract",
+            "--packs-dir", "packs",
+            "--manifest", manifest_path,
+            "--output-dir", "UnrealEngine",
+        ]
+        for prefix in prefixes:
+            extract_args.extend(["--prefix", prefix])
+
         exec_result = repo_ctx.execute(
-            [
-                gitdeps_binary,
-                "extract",
-                "--packs-dir", "packs",
-                "--manifest", manifest_path,
-                "--output-dir", "UnrealEngine",
-            ],
+            extract_args,
             quiet = False,
             timeout = 1800,  # 30 min for extraction
         )
 
         if exec_result.return_code != 0:
-            fail("Failed to extract packs: " + exec_result.stdout + exec_result.stderr)
+            fail("Failed to extract packs: {}{}".format(exec_result.stdout, exec_result.stderr))
     else:
         # Fallback: Use gitDeps directly (downloads + extracts in one go)
         print("Downloading dependencies using gitDeps (no Bazel cache)...")
-        gitdeps_binary = repo_ctx.path(repo_ctx.attr._gitdeps_tool)
 
+        # Note: gitDeps main command doesn't support --prefix yet
+        # TODO: Add prefix support to main gitDeps command too
+        # For now, simple mode downloads everything
         exec_result = repo_ctx.execute(
             [
                 gitdeps_binary,
@@ -98,8 +206,99 @@ def _unreal_engine_impl(repo_ctx):
 
     print("Unreal Engine dependencies ready")
 
-    # Create build file
+    # Build UnrealBuildTool from source using bundled dotnet
+    # UBT.dll is a build artifact (not in git), so we compile it during repo setup
+    print("Building UnrealBuildTool from source...")
+
+    # Detect platform for bundled dotnet path
+    os_name = repo_ctx.os.name.lower()
+    os_arch = repo_ctx.os.arch.lower()
+    if "mac" in os_name or "darwin" in os_name:
+        if "aarch64" in os_arch or "arm64" in os_arch:
+            dotnet_platform = "mac-arm64"
+        else:
+            dotnet_platform = "mac-x64"
+    elif "linux" in os_name:
+        if "aarch64" in os_arch or "arm64" in os_arch:
+            dotnet_platform = "linux-arm64"
+        else:
+            dotnet_platform = "linux-x64"
+    else:
+        fail("Unsupported platform for UBT build: {} {}".format(os_name, os_arch))
+
+    # Bundled dotnet (extracted by gitDeps)
+    dotnet_binary = repo_ctx.path("UnrealEngine/Engine/Binaries/ThirdParty/DotNet/8.0.300/{}/dotnet".format(dotnet_platform))
+
+    # Build UnrealBuildTool.csproj
+    ubt_result = repo_ctx.execute([
+        dotnet_binary,
+        "build",
+        "UnrealEngine/Engine/Source/Programs/UnrealBuildTool/UnrealBuildTool.csproj",
+        "-c", "Release",
+        "--output", "UnrealEngine/Engine/Binaries/DotNET/UnrealBuildTool",
+    ])
+
+    if ubt_result.return_code != 0:
+        fail("Failed to build UnrealBuildTool:\nstdout: {}\nstderr: {}".format(
+            ubt_result.stdout, ubt_result.stderr))
+
+    print("UnrealBuildTool built successfully")
+
+    # Export bundled tools for UHT code generation
+    # Platform-specific dotnet binary paths
+    dotnet_builds = {
+        "mac-arm64": "UnrealEngine/Engine/Binaries/ThirdParty/DotNet/8.0.300/mac-arm64/BUILD.bazel",
+        "mac-x64": "UnrealEngine/Engine/Binaries/ThirdParty/DotNet/8.0.300/mac-x64/BUILD.bazel",
+        "linux-arm64": "UnrealEngine/Engine/Binaries/ThirdParty/DotNet/8.0.300/linux-arm64/BUILD.bazel",
+        "linux-x64": "UnrealEngine/Engine/Binaries/ThirdParty/DotNet/8.0.300/linux-x64/BUILD.bazel",
+        # TODO: Windows paths when Windows support added
+    }
+
+    # Create BUILD files for all dotnet platforms
+    for platform, path in dotnet_builds.items():
+        repo_ctx.file(path, 'exports_files(["dotnet"])')
+
+    # Export UnrealBuildTool.dll and UHT.dll (platform-independent)
+    repo_ctx.file("UnrealEngine/Engine/Binaries/DotNET/UnrealBuildTool/BUILD.bazel", """
+exports_files([
+    "UnrealBuildTool.dll",
+    "EpicGames.UHT.dll",
+])
+""")
+
+    # Create main build file
     repo_ctx.file("UnrealEngine/BUILD", """exports_files(["Setup.sh"])""")
+
+    # Install BUILD files from ue_modules/ into the cloned repo
+    # This makes UE modules available as deps (e.g., @unreal_engine_source//UnrealEngine/Engine/Source/Runtime/Core)
+    print("Installing BUILD files from ue_modules/...")
+
+    # Find all BUILD.bazel files in ue_modules/
+    ue_modules_root = repo_ctx.path(Label("//:ue_modules"))
+    result = repo_ctx.execute(["find", str(ue_modules_root), "-name", "BUILD.bazel", "-type", "f"])
+    if result.return_code != 0:
+        fail("Failed to find BUILD files: " + result.stderr)
+
+    build_files = result.stdout.strip().split("\n")
+    installed_count = 0
+    for build_file_path in build_files:
+        if not build_file_path:  # Skip empty lines
+            continue
+
+        # Extract relative path from ue_modules/
+        # e.g., /path/to/ue_modules/Runtime/Core/BUILD.bazel -> Runtime/Core/BUILD.bazel
+        rel_path = build_file_path.replace(str(ue_modules_root) + "/", "")
+
+        # Target path in UnrealEngine clone
+        # Runtime/Core/BUILD.bazel -> UnrealEngine/Engine/Source/Runtime/Core/BUILD.bazel
+        target_path = "UnrealEngine/Engine/Source/" + rel_path
+
+        # Read and copy the BUILD file (hermetic)
+        build_content = repo_ctx.read(build_file_path)
+        repo_ctx.file(target_path, build_content)
+        installed_count += 1
+
+    print("Installed {} BUILD files from ue_modules/".format(installed_count))
 
 unreal_engine = repository_rule(
     implementation = _unreal_engine_impl,
@@ -128,11 +327,6 @@ When use_bazel_downloader=True, leverages Bazel's HTTP cache for faster rebuilds
             When True, packs are downloaded using Bazel's HTTP cache and reused across builds.
             When False, uses gitDeps directly (no caching, but simpler).""",
         ),
-        "_gitdeps_tool": attr.label(
-            default = "@//:rules_unreal_engine",
-            executable = True,
-            cfg = "exec",
-            doc = "The gitDeps tool for downloading/extracting dependencies",
-        ),
+        # Note: No _gitdeps_tool needed - we build it during loading phase using downloaded Go SDK
     },
 )

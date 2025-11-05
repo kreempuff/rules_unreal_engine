@@ -16,6 +16,5 @@ ue_module(
     private_deps = [
         "//Engine/Source/Runtime/Core",
     ],
-
     visibility = ["//visibility:public"],
 )

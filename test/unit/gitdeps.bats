@@ -3,12 +3,17 @@
 
 # Setup: Build the binary once before all tests
 setup_file() {
-    export BINARY="$BATS_TEST_DIRNAME/../bazel-bin/rules_unreal_engine_/rules_unreal_engine"
+    # Find project root (BATS_TEST_DIRNAME is test/unit/)
+    PROJECT_ROOT="$BATS_TEST_DIRNAME/../.."
 
-    # Build if not exists
-    if [ ! -f "$BINARY" ]; then
-        cd "$BATS_TEST_DIRNAME/.." && bazel build //:rules_unreal_engine
-    fi
+    # Always build to ensure bazel-bin symlink is fresh (fast with cache)
+    cd "$PROJECT_ROOT" && bazel build //:rules_unreal_engine >&2
+
+    export BINARY="$PROJECT_ROOT/bazel-bin/rules_unreal_engine_/rules_unreal_engine"
+
+    echo "BATS setup: BINARY=$BINARY" >&2
+    echo "BATS setup: Binary exists=$(test -f "$BINARY" && echo yes || echo no)" >&2
+    ls -la "$BINARY" >&2 || echo "Binary not found at $BINARY" >&2
 
     # Create test data directory
     export TEST_DATA_DIR="$BATS_TEST_DIRNAME/data"
@@ -297,4 +302,46 @@ teardown() {
 
     # Outputs should be identical
     diff "$TEST_TEMP_DIR/out1.json" "$TEST_TEMP_DIR/out2.json"
+}
+
+# Test: IsExecutable attribute sets file permissions correctly
+@test "extract sets executable permissions from IsExecutable attribute" {
+    # Create test manifest with executable and regular files
+    mkdir -p "$TEST_TEMP_DIR/exec_test/packs"
+    
+    cat > "$TEST_TEMP_DIR/exec_test/manifest.xml" <<'MANIFEST'
+<?xml version="1.0" encoding="utf-8"?>
+<PackageManifest>
+  <BaseUrl>unused</BaseUrl>
+  <Files>
+    <File Name="bin/executable" Hash="hash1" IsExecutable="true" />
+    <File Name="data/regular.txt" Hash="hash2" />
+  </Files>
+  <Blobs>
+    <Blob Hash="hash1" Size="11" PackHash="testpack" PackOffset="0" />
+    <Blob Hash="hash2" Size="12" PackHash="testpack" PackOffset="11" />
+  </Blobs>
+  <Packs>
+    <Pack Hash="testpack" Size="23" CompressedSize="50" RemotePath="/testpack.pack.gz" />
+  </Packs>
+</PackageManifest>
+MANIFEST
+
+    # Create pack with test data (11 bytes + 12 bytes)
+    printf "#!/bin/bash\nregular data" | gzip > "$TEST_TEMP_DIR/exec_test/packs/testpack.pack.gz"
+
+    # Extract
+    run "$BINARY" extract \
+        --manifest "$TEST_TEMP_DIR/exec_test/manifest.xml" \
+        --packs-dir "$TEST_TEMP_DIR/exec_test/packs" \
+        --output-dir "$TEST_TEMP_DIR/exec_test/output"
+
+    [ "$status" -eq 0 ]
+
+    # Verify executable file has execute permission (0755 or 0755)
+    [ -x "$TEST_TEMP_DIR/exec_test/output/bin/executable" ]
+    
+    # Verify regular file does NOT have execute permission
+    [ -f "$TEST_TEMP_DIR/exec_test/output/data/regular.txt" ]
+    [ ! -x "$TEST_TEMP_DIR/exec_test/output/data/regular.txt" ]
 }

@@ -8,11 +8,13 @@ go_library(
         "gitDeps.go",
         "printUrls.go",
         "root.go",
+        "uht.go",
     ],
     importpath = "kreempuff.dev/rules-unreal-engine/cmd",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/gitDeps",
+        "//pkg/uht",
         "@com_github_sirupsen_logrus//:logrus",
         "@com_github_spf13_cobra//:cobra",
     ],
