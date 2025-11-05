@@ -22,6 +22,38 @@ Unreal Engine's build system is complex and not well documented (in my opinion).
 
 TODO
 
+## Development Setup
+
+### Local Remote Cache (Optional but Recommended)
+
+For faster iteration during development, set up a local remote cache using bazel-remote + MinIO:
+
+```bash
+# Start cache services
+docker-compose up -d
+
+# Verify services are running
+docker ps  # Should show bazel-remote and minio containers
+
+# Build with remote cache (automatic via .bazelrc)
+bazel build //...
+```
+
+**Benefits:**
+- **Instant pack downloads** after first fetch (1045 packs in ~1 second)
+- **Persistent cache** across `bazel clean` rebuilds
+- **Shared cache** across multiple workspaces
+
+**Services:**
+- **bazel-remote** (localhost:8080 HTTP, localhost:9092 gRPC) - Bazel cache proxy
+- **MinIO** (localhost:9000 S3, localhost:9001 console) - Object storage backend
+
+**Storage:**
+- Cache data persists in Docker volume `minio-data`
+- To clear cache: `docker-compose down -v`
+
+**Note:** CI uses GitHub Actions cache instead (simpler for ephemeral environments).
+
 ## Roadmap to 1.0
 
 - [ ] Build Unreal Engine from source in Bazel
