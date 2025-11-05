@@ -35,8 +35,8 @@ docker-compose up -d
 # Verify services are running
 docker ps  # Should show bazel-remote and minio containers
 
-# Build with remote cache (automatic via .bazelrc)
-bazel build //...
+# Build with remote cache enabled
+bazel build --config=cache //...
 ```
 
 **Benefits:**
