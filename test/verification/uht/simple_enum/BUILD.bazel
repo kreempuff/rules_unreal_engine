@@ -10,6 +10,8 @@ ue_module(
     srcs = ["Private/TestModule.cpp"],
     public_deps = [
         "@unreal_engine_source//UnrealEngine/Engine/Source/Runtime/Core:Core_headers",
+        "@unreal_engine_source//UnrealEngine/Engine/Source/Runtime/TraceLog:TraceLog_headers",
+        "@unreal_engine_source//UnrealEngine/Engine/Source/Runtime/AutoRTFM:AutoRTFM_headers",
     ],
     # UHT enabled by default, uses @unreal_engine_source from MODULE.bazel
 )
