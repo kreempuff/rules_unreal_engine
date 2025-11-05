@@ -19,5 +19,5 @@ unreal_engine(
     name = "unreal_engine_source",
     git_repository = "file:///Users/kareemmarch/Projects/UnrealEngine",
     commit = "kreempuff-release",
-    use_bazel_downloader = True,  # Use Bazel HTTP cache (shared across invocations!)
+    use_bazel_downloader = True,  # Use Bazel HTTP cache (debugging pack location issue)
 )
