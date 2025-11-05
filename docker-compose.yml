@@ -1,0 +1,58 @@
+services:
+  # MinIO - S3-compatible object storage
+  minio:
+    image: minio/minio:latest
+    container_name: bazel-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: bazel
+      MINIO_ROOT_PASSWORD: bazel-secret-key
+    volumes:
+      - minio-data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # bazel-remote - Bazel remote cache
+  bazel-remote:
+    image: buchgr/bazel-remote-cache:latest
+    container_name: bazel-remote
+    ports:
+      - "8080:8080"
+      - "9092:9092"
+    depends_on:
+      - minio
+    environment:
+      # S3 backend configuration
+      - S3_ENDPOINT=minio:9000
+      - S3_BUCKET=bazel-cache
+      - S3_ACCESS_KEY_ID=bazel
+      - S3_SECRET_ACCESS_KEY=bazel-secret-key
+      - S3_DISABLE_SSL=true
+      - S3_FORCE_PATH_STYLE=true
+    command:
+      - --s3.endpoint=minio:9000
+      - --s3.bucket=bazel-cache
+      - --s3.auth_method=access_key
+      - --s3.access_key_id=bazel
+      - --s3.secret_access_key=bazel-secret-key
+      - --s3.disable_ssl
+      - --s3.bucket_lookup_type=path
+      - --max_size=50
+      - --http_address=0.0.0.0:8080
+      - --grpc_address=0.0.0.0:9092
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  minio-data:
+    driver: local
