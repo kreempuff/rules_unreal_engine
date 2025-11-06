@@ -83,25 +83,47 @@ def _uht_codegen_impl(ctx):
         outputs.append(ctx.actions.declare_file(sanitized + ".generated.h"))
         outputs.append(ctx.actions.declare_file(sanitized + ".gen.cpp"))
 
-    # Generate manifest
+    # Generate manifest with uhtscan filtering
     manifest = ctx.actions.declare_file(ctx.attr.module_name + ".uhtmanifest")
-    header_paths = ",".join([hdr.path for hdr in filtered_hdrs])
 
-    ctx.actions.run(
-        executable = ctx.executable._gitdeps,
-        arguments = [
-            "uht", "manifest",
-            "--module-name", ctx.attr.module_name,
-            "--module-type", ctx.attr.module_type,
-            "--base-dir", ctx.bin_dir.path,
-            "--output-dir", ctx.bin_dir.path,
-            "--headers", header_paths,
-            "--output", manifest.path,
-        ],
+    # Use run_shell to chain uhtscan → gitdeps manifest
+    # uhtscan scans headers for UCLASS/USTRUCT/UENUM macros (matches Epic's UBT behavior)
+    all_header_paths = " ".join([hdr.path for hdr in ctx.files.hdrs])
+
+    ctx.actions.run_shell(
+        command = """
+            # Scan headers for reflection macros (like Epic's UBT does)
+            UHTSCAN={uhtscan}
+            FILTERED_HEADERS=$($UHTSCAN {headers})
+
+            # Convert to comma-separated for gitdeps
+            HEADERS_CSV=$(echo "$FILTERED_HEADERS" | tr '\\n' ',' | sed 's/,$//')
+
+            # Generate manifest with filtered headers
+            GITDEPS={gitdeps}
+            $GITDEPS uht manifest \
+                --module-name {module_name} \
+                --module-type {module_type} \
+                --base-dir {base_dir} \
+                --output-dir {output_dir} \
+                --headers "$HEADERS_CSV" \
+                --output {manifest}
+        """.format(
+            uhtscan = ctx.executable._uhtscan.path,
+            gitdeps = ctx.executable._gitdeps.path,
+            headers = all_header_paths,
+            module_name = ctx.attr.module_name,
+            module_type = ctx.attr.module_type,
+            base_dir = ctx.bin_dir.path,
+            output_dir = ctx.bin_dir.path,
+            manifest = manifest.path,
+        ),
+        inputs = ctx.files.hdrs,
         outputs = [manifest],
+        tools = [ctx.executable._uhtscan, ctx.executable._gitdeps],
         mnemonic = "UHTManifest",
-        progress_message = "Generating UHT manifest for %s" % ctx.attr.module_name,
-        execution_requirements = {"no-sandbox": "1"},  # gitDeps needs real execroot to resolve relative paths
+        progress_message = "Scanning and generating UHT manifest for %s" % ctx.attr.module_name,
+        execution_requirements = {"no-sandbox": "1"},  # uhtscan and gitDeps need real execroot
     )
 
     # Generate .uproject file
@@ -176,6 +198,11 @@ uht_codegen = rule(
         "hdrs": attr.label_list(allow_files = [".h", ".hpp", ".inl", ".cpp"]),  # .cpp for unity builds
         "_gitdeps": attr.label(
             default = Label("//:rules_unreal_engine"),
+            executable = True,
+            cfg = "exec",
+        ),
+        "_uhtscan": attr.label(
+            default = Label("//cmd/uhtscan"),
             executable = True,
             cfg = "exec",
         ),
