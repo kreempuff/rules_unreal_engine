@@ -47,7 +47,7 @@ jobs:
       - name: Setup UE clone cache
         uses: actions/cache@v4
         with:
-          path: ~/ue-clone
+          path: ${{ github.workspace }}/../ue-clone
           key: ${{ runner.os }}-ue-${{ hashFiles('MODULE.bazel') }}
           restore-keys: |
             ${{ runner.os }}-ue-
@@ -56,9 +56,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.UE_CLONE_TOKEN }}
         run: |
-          if [ ! -d ~/ue-clone/.git ]; then
-            git clone --depth 1 --branch kreempuff-release https://oauth2:$GH_TOKEN@github.com/kreempuff/UnrealEngine.git ~/ue-clone
+          UE_CLONE_DIR="${GITHUB_WORKSPACE}/../ue-clone"
+          if [ ! -d "$UE_CLONE_DIR/.git" ]; then
+            git clone --depth 1 --branch kreempuff-release https://oauth2:$GH_TOKEN@github.com/kreempuff/UnrealEngine.git "$UE_CLONE_DIR"
           fi
+          # Create .bazelrc.ci for UE path (applies to all Bazel commands)
+          echo "common --repo_env=UE_GIT_URL=file://$UE_CLONE_DIR" > .bazelrc.ci
 
       - name: Install BATS
         run: |
@@ -79,10 +82,10 @@ jobs:
             ${{ runner.os }}-bazel-
 
       - name: Run Bazel tests
-        run: bazel test --config ci --repo_env=UE_GIT_URL=file://$HOME/ue-clone //:unreal_target_test //pkg/gitDeps:gitDeps_test
+        run: bazel test --config ci //:unreal_target_test //pkg/gitDeps:gitDeps_test
 
       - name: Build rules_unreal_engine binary
-        run: bazel build --repo_env=UE_GIT_URL=file://$HOME/ue-clone //:rules_unreal_engine
+        run: bazel build //:rules_unreal_engine
 
       - name: Run BATS tests
         run: |

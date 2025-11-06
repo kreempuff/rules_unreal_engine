@@ -8,3 +8,6 @@ common:ci --disk_cache=~/.cache/bazel --experimental_ui_max_stdouterr_bytes=5000
 build:cache --remote_cache=grpc://localhost:9092
 build:cache --remote_upload_local_results=true
 build:cache --experimental_remote_downloader=grpc://localhost:9092
+
+# Import CI-generated config (contains UE clone path)
+try-import %workspace%/.bazelrc.ci
