@@ -1,0 +1,8 @@
+load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
+
+ue_module(
+    name = "TraceLog",
+    module_type = "Runtime",
+    local_defines = ["SUPPRESS_PER_MODULE_INLINE_FILE"],
+    visibility = ["//visibility:public"],
+)

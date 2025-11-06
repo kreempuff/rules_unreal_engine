@@ -1,35 +1,23 @@
 {
   "IsGameTarget": true,
-  "RootLocalPath": "/Users/kareemmarch/projects/rules_unreal_engine",
-  "TargetName": "TestTarget",
-  "ExternalDependenciesFile": "/Users/kareemmarch/projects/rules_unreal_engine/test/uht_test/TestTarget.deps",
+  "RootLocalPath": "/Users/kareemmarch/.config/cache/bazel/_bazel_kareemmarch/ee854723530506bd39cfb10c328682bb/execroot/_main",
+  "TargetName": "BazelTarget",
   "Modules": [
     {
       "Name": "TestModule",
       "ModuleType": "EngineRuntime",
-      "OverrideModuleType": "None",
-      "BaseDirectory": "/Users/kareemmarch/projects/rules_unreal_engine/test/uht_test",
+      "BaseDirectory": "/Users/kareemmarch/.config/cache/bazel/_bazel_kareemmarch/ee854723530506bd39cfb10c328682bb/execroot/_main",
       "IncludePaths": [
-        "/Users/kareemmarch/projects/rules_unreal_engine/test/uht_test/Public",
-        "/Users/kareemmarch/projects/rules_unreal_engine/test/uht_test/Private"
+        "/Users/kareemmarch/.config/cache/bazel/_bazel_kareemmarch/ee854723530506bd39cfb10c328682bb/execroot/_main/Public",
+        "/Users/kareemmarch/.config/cache/bazel/_bazel_kareemmarch/ee854723530506bd39cfb10c328682bb/execroot/_main/Private"
       ],
-      "OutputDirectory": "/Users/kareemmarch/projects/rules_unreal_engine/test/uht_test/generated",
-      "ClassesHeaders": [],
+      "OutputDirectory": "/Users/kareemmarch/.config/cache/bazel/_bazel_kareemmarch/ee854723530506bd39cfb10c328682bb/execroot/_main/bazel-out/darwin_arm64-fastbuild/bin",
       "PublicHeaders": [
-        "/Users/kareemmarch/projects/rules_unreal_engine/test/uht_test/Public/TestEnum.h"
+        "/Users/kareemmarch/projects/rules_unreal_engine/test/verification/uht/simple_enum/Public/TestEnum.h"
       ],
-      "InternalHeaders": [],
-      "PrivateHeaders": [],
-      "PublicDefines": [],
-      "GeneratedCPPFilenameBase": "/Users/kareemmarch/projects/rules_unreal_engine/test/uht_test/generated/TestModule.gen",
+      "GeneratedCPPFilenameBase": "/Users/kareemmarch/.config/cache/bazel/_bazel_kareemmarch/ee854723530506bd39cfb10c328682bb/execroot/_main/bazel-out/darwin_arm64-fastbuild/bin/TestModule.gen",
       "SaveExportedHeaders": true,
-      "UHTGeneratedCodeVersion": "None",
-      "VersePath": "",
-      "VerseScope": "PublicUser",
-      "HasVerse": false,
-      "VerseMountPoint": "",
-      "AlwaysExportStructs": true,
-      "AlwaysExportEnums": true
+      "UHTGeneratedCodeVersion": "None"
     }
   ]
 }

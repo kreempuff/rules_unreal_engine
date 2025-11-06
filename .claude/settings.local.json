@@ -5,7 +5,12 @@
       "Bash(bazel build:*)",
       "Bash(just install:*)",
       "Bash(bazel test:*)",
-      "Bash(just test-all:*)"
+      "Bash(just test-all:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []
