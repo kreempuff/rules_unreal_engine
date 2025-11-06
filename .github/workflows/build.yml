@@ -53,9 +53,11 @@ jobs:
             ${{ runner.os }}-ue-
 
       - name: Clone Unreal Engine (cached)
+        env:
+          GH_TOKEN: ${{ secrets.UE_CLONE_TOKEN }}
         run: |
           if [ ! -d ~/ue-clone/.git ]; then
-            git clone --depth 1 --branch kreempuff-release https://github.com/kreempuff/UnrealEngine.git ~/ue-clone
+            git clone --depth 1 --branch kreempuff-release https://oauth2:$GH_TOKEN@github.com/kreempuff/UnrealEngine.git ~/ue-clone
           fi
 
       - name: Install BATS
