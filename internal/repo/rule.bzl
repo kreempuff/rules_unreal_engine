@@ -108,9 +108,15 @@ def _unreal_engine_impl(repo_ctx):
     gitdeps_binary = _build_gitdeps(repo_ctx)
 
     # Clone Unreal Engine repository
-    print("Cloning Unreal Engine from: " + repo_ctx.attr.git_repository)
+    # Support UE_GIT_URL env var for per-developer configuration (e.g., file:// local clones)
+    # Falls back to git_repository attribute if env var not set
+    git_url = repo_ctx.getenv("UE_GIT_URL")
+    if not git_url:
+        git_url = repo_ctx.attr.git_repository
+
+    print("Cloning Unreal Engine from: " + git_url)
     exec_result = repo_ctx.execute(
-        ["git", "clone", repo_ctx.attr.git_repository, "--depth", "1", "--branch", repo_ctx.attr.commit, "UnrealEngine"],
+        ["git", "clone", git_url, "--depth", "1", "--branch", repo_ctx.attr.commit, "UnrealEngine"],
         quiet = False,
     )
     if exec_result.return_code != 0:

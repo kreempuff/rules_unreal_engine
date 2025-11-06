@@ -19,11 +19,15 @@ use_repo(
     "com_github_stretchr_testify",
 )
 
+# Set up Unreal Engine source repository for ue_module testing
+# Default: Public fork (for CI)
+# Override: Set UE_GIT_URL env var to point to your local clone
+#   Example in .bazelrc.user: common --repo_env=UE_GIT_URL=file:///Users/you/Projects/UnrealEngine
 unreal_engine = use_repo_rule("//internal/repo:rule.bzl", "unreal_engine")
 
 unreal_engine(
-    name = "unreal_engine",
+    name = "unreal_engine_source",
+    git_repository = "https://github.com/kreempuff/UnrealEngine.git",
     commit = "kreempuff-release",
-    #    git_repository = "https://github.com/kreempuff/UnrealEngine.git",
-    git_repository = "file:///Users/kareemmarch/Projects/UnrealEngine",
+    use_bazel_downloader = True,
 )

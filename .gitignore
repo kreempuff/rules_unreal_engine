@@ -2,6 +2,10 @@
 bazel-*
 /bazel-out/
 
+# User-specific Bazel config
+.bazelrc.user
+.bazelrc.ci
+
 # Go build outputs
 *.test
 *.out

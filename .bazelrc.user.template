@@ -1,0 +1,31 @@
+# User-specific Bazel configuration
+# Copy this file to .bazelrc.user (gitignored) and customize for your setup
+
+# ============================================================================
+# Unreal Engine Clone Location
+# ============================================================================
+# Point to your local UE clone to avoid slow network downloads
+# Replace with your actual path to UnrealEngine directory
+
+common --repo_env=UE_GIT_URL=file:///Users/YOURNAME/Projects/UnrealEngine
+
+# ============================================================================
+# Remote Cache (Optional)
+# ============================================================================
+# If you have bazel-remote + MinIO running (see docker-compose.yml):
+# build:cache --remote_cache=grpc://localhost:9092
+# build:cache --remote_upload_local_results=true
+# build:cache --experimental_remote_downloader=grpc://localhost:9092
+
+# Then use: bazel build --config=cache //...
+
+# ============================================================================
+# Other Options
+# ============================================================================
+# Faster local builds (more RAM usage):
+# build --jobs=12
+# build --local_ram_resources=HOST_RAM*.8
+
+# Verbose output for debugging:
+# build --subcommands
+# build --verbose_failures
