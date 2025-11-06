@@ -68,7 +68,7 @@ setup() {
 }
 
 @test "ue_module: Simple module builds successfully" {
-    run bazel build //test/module_rule_test:SimpleModule
+    run bazel build //test/module/fixtures:SimpleModule
 
     echo "Output: $output"
     [ "$status" -eq 0 ]
@@ -77,7 +77,7 @@ setup() {
 }
 
 @test "ue_module: Module with dependencies builds" {
-    run bazel build //test/module_rule_test:DependentModule
+    run bazel build //test/module/fixtures:DependentModule
 
     echo "Output: $output"
     [ "$status" -eq 0 ]
@@ -86,7 +86,7 @@ setup() {
 }
 
 @test "ue_module: Platform conditionals work with select()" {
-    run bazel build //test/module_rule_test:PlatformModule
+    run bazel build //test/module/fixtures:PlatformModule
 
     echo "Output: $output"
     [ "$status" -eq 0 ]
@@ -95,7 +95,7 @@ setup() {
 }
 
 @test "ue_module: All test modules build together" {
-    run bazel build //test/module_rule_test/...
+    run bazel build //test/module/fixtures/...
 
     echo "Output: $output"
     [ "$status" -eq 0 ]
@@ -103,7 +103,7 @@ setup() {
 }
 
 @test "ue_module: Rule generates proper cc_library tags" {
-    run bazel query 'attr(tags, "ue_module", //test/module_rule_test:SimpleModule)'
+    run bazel query 'attr(tags, "ue_module", //test/module/fixtures:SimpleModule)'
 
     echo "Output: $output"
     [ "$status" -eq 0 ]
@@ -111,7 +111,7 @@ setup() {
 }
 
 @test "ue_module: Module type tag is set correctly" {
-    run bazel query 'attr(tags, "ue_module_type:Runtime", //test/module_rule_test:SimpleModule)'
+    run bazel query 'attr(tags, "ue_module_type:Runtime", //test/module/fixtures:SimpleModule)'
 
     echo "Output: $output"
     [ "$status" -eq 0 ]
@@ -119,7 +119,7 @@ setup() {
 }
 
 @test "ue_module: Dependencies are resolved correctly" {
-    run bazel query 'deps(//test/module_rule_test:DependentModule)'
+    run bazel query 'deps(//test/module/fixtures:DependentModule)'
 
     echo "Output: $output"
     [ "$status" -eq 0 ]
@@ -129,7 +129,7 @@ setup() {
 
 @test "ue_module: Public includes are exported" {
     # Check that the rule sets up includes properly
-    run bazel query --output=build //test/module_rule_test:SimpleModule
+    run bazel query --output=build //test/module/fixtures:SimpleModule
 
     echo "Output: $output"
     [ "$status" -eq 0 ]
@@ -140,7 +140,7 @@ setup() {
 @test "ue_module: UE compiler flags are applied (C++20, no exceptions, no RTTI)" {
     # This test validates that UE default flags are working
     # TestUEFlags.cpp has #error directives that fail if flags are wrong
-    run bazel build //test/module_rule_test:UEFlagsTest
+    run bazel build //test/module/fixtures:UEFlagsTest
 
     echo "Output: $output"
     [ "$status" -eq 0 ]
@@ -152,7 +152,7 @@ setup() {
     # Clean first
     bazel clean
 
-    run bazel build //test/module_rule_test:SimpleModule
+    run bazel build //test/module/fixtures:SimpleModule
 
     echo "Output: $output"
     [ "$status" -eq 0 ]
@@ -161,10 +161,10 @@ setup() {
 
 @test "ue_module: Incremental rebuild is fast" {
     # First build
-    bazel build //test/module_rule_test:SimpleModule > /dev/null 2>&1
+    bazel build //test/module/fixtures:SimpleModule > /dev/null 2>&1
 
     # Second build should be cached
-    run bazel build //test/module_rule_test:SimpleModule
+    run bazel build //test/module/fixtures:SimpleModule
 
     echo "Output: $output"
     [ "$status" -eq 0 ]
@@ -174,7 +174,7 @@ setup() {
 }
 
 @test "ue_module: Preprocessor defines are applied" {
-    run bazel query --output=build //test/module_rule_test:DependentModule
+    run bazel query --output=build //test/module/fixtures:DependentModule
 
     echo "Output: $output"
     [ "$status" -eq 0 ]
@@ -182,7 +182,7 @@ setup() {
 }
 
 @test "ue_module: BUILD file loads without errors" {
-    run bazel query //test/module_rule_test:all
+    run bazel query //test/module/fixtures:all
 
     echo "Output: $output"
     [ "$status" -eq 0 ]
@@ -193,7 +193,7 @@ setup() {
 
 @test "ue_module: Real UE module structure builds (TraceLog-like mock)" {
     # Create a realistic UE module structure in temp dir
-    TEST_MODULE_DIR="$PROJECT_ROOT/test/ue_real_module_test"
+    TEST_MODULE_DIR="$PROJECT_ROOT/test/module/real_ue_test"
     mkdir -p "$TEST_MODULE_DIR/Public"
     mkdir -p "$TEST_MODULE_DIR/Private"
 
@@ -230,7 +230,7 @@ ue_module(
 EOF
 
     # Build the module
-    run bazel build //test/ue_real_module_test:TraceLog
+    run bazel build //test/module/real_ue_test:TraceLog
 
     echo "Output: $output"
     [ "$status" -eq 0 ]
