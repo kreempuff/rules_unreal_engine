@@ -33,6 +33,14 @@ def _filter_headers_for_uht(hdrs):
         if "/Detail/" in path or "/Impl/" in path or "/Private/" in path:
             continue
 
+        # Skip VerseVM internal headers (no reflection macros)
+        # Epic's UBT scans headers and only includes ones with UCLASS/USTRUCT/UENUM
+        # VVMValue.h, etc. don't have reflection macros, so Epic excludes them too
+        # Only VVMVerse*.h headers (VVMVerseClass, VVMVerseStruct, etc.) have macros
+        # TODO: Implement proper header scanning like UBT instead of path-based filtering
+        if "/VerseVM/VVM" in path and not path.endswith("Verse.h") and "VVMVerse" not in path:
+            continue
+
         # Skip platform-specific subdirectories
         platform_dirs = ["/Windows/", "/Microsoft/", "/Apple/", "/Unix/", "/Linux/", "/IOS/", "/Android/"]
         skip = False

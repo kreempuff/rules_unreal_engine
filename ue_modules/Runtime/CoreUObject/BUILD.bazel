@@ -1,0 +1,32 @@
+"""Unreal Engine CoreUObject module.
+
+The reflection system - provides UObject base class, UCLASS/USTRUCT/UENUM support,
+serialization, and garbage collection.
+
+Converted from: Engine/Source/Runtime/CoreUObject/CoreUObject.Build.cs
+"""
+
+load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
+
+ue_module(
+    name = "CoreUObject",
+    module_type = "Runtime",
+
+    # From CoreUObject.Build.cs: PublicDependencyModuleNames
+    public_deps = [
+        "//Engine/Source/Runtime/Core",
+        "//Engine/Source/Runtime/TraceLog",
+        "//Engine/Source/Runtime/CorePreciseFP",
+    ],
+
+    # From CoreUObject.Build.cs: PrivateDependencyModuleNames
+    private_deps = [
+        "//Engine/Source/Runtime/AutoRTFM",
+        "//Engine/Source/Runtime/Projects",
+        "//Engine/Source/Runtime/Json",
+        # DerivedDataCache - editor-only, skip for now
+        # ApplicationCore - optional, skip for now
+    ],
+
+    visibility = ["//visibility:public"],
+)

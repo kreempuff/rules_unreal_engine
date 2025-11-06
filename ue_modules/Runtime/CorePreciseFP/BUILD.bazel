@@ -1,0 +1,17 @@
+"""Unreal Engine CorePreciseFP module.
+
+Provides precise floating point handling.
+
+Converted from: Engine/Source/Runtime/CorePreciseFP/CorePreciseFP.Build.cs
+"""
+
+load("@rules_unreal_engine//bzl:module.bzl", "ue_module")
+
+ue_module(
+    name = "CorePreciseFP",
+    module_type = "Runtime",
+    public_deps = [
+        "//Engine/Source/Runtime/Core",
+    ],
+    visibility = ["//visibility:public"],
+)
