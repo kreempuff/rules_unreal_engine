@@ -44,6 +44,20 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Setup UE clone cache
+        uses: actions/cache@v4
+        with:
+          path: ~/ue-clone
+          key: ${{ runner.os }}-ue-${{ hashFiles('MODULE.bazel') }}
+          restore-keys: |
+            ${{ runner.os }}-ue-
+
+      - name: Clone Unreal Engine (cached)
+        run: |
+          if [ ! -d ~/ue-clone/.git ]; then
+            git clone --depth 1 --branch kreempuff-release https://github.com/kreempuff/UnrealEngine.git ~/ue-clone
+          fi
+
       - name: Install BATS
         run: |
           if [ "${{ matrix.os }}" = "ubuntu-22.04" ]; then
@@ -63,10 +77,10 @@ jobs:
             ${{ runner.os }}-bazel-
 
       - name: Run Bazel tests
-        run: bazel test --config ci //:unreal_target_test //pkg/gitDeps:gitDeps_test
+        run: bazel test --config ci --repo_env=UE_GIT_URL=file://$HOME/ue-clone //:unreal_target_test //pkg/gitDeps:gitDeps_test
 
       - name: Build rules_unreal_engine binary
-        run: bazel build //:rules_unreal_engine
+        run: bazel build --repo_env=UE_GIT_URL=file://$HOME/ue-clone //:rules_unreal_engine
 
       - name: Run BATS tests
         run: |
