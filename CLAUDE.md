@@ -95,7 +95,7 @@ workspace/
    - ShaderCompileWorker-Core.dylib compiled with older Xcode version
    - libtbb.dylib has different C++ standard library ABI
    - Symbol `std::length_error` destructor missing
-   - Xcode version changes caused mismatch
+   - Xcode version changes (26.0.1 → 15.4 → 16.1) caused ABI mismatch
 
 4. **The "Solution": Rebuild the Entire Engine**
    ```bash

@@ -99,12 +99,23 @@ def _uht_codegen_impl(ctx):
             # Convert to comma-separated for gitdeps
             HEADERS_CSV=$(echo "$FILTERED_HEADERS" | tr '\\n' ',' | sed 's/,$//')
 
+            # Derive BaseDirectory from first header (parent of Public/ or Private/)
+            # E.g., external/.../CoreUObject/Public/Foo.h -> external/.../CoreUObject
+            FIRST_HEADER=$(echo "$FILTERED_HEADERS" | head -1)
+            if [ -n "$FIRST_HEADER" ]; then
+                # Remove /Public/... or /Private/... to get module root
+                BASE_DIR=$(echo "$FIRST_HEADER" | sed 's|/Public/.*||' | sed 's|/Private/.*||' | sed 's|/Internal/.*||')
+            else
+                # No headers with macros, use fallback
+                BASE_DIR="{fallback_base_dir}"
+            fi
+
             # Generate manifest with filtered headers
             GITDEPS={gitdeps}
             $GITDEPS uht manifest \
                 --module-name {module_name} \
                 --module-type {module_type} \
-                --base-dir {base_dir} \
+                --base-dir "$BASE_DIR" \
                 --output-dir {output_dir} \
                 --headers "$HEADERS_CSV" \
                 --output {manifest}
@@ -114,7 +125,7 @@ def _uht_codegen_impl(ctx):
             headers = all_header_paths,
             module_name = ctx.attr.module_name,
             module_type = ctx.attr.module_type,
-            base_dir = ctx.bin_dir.path,
+            fallback_base_dir = ctx.bin_dir.path,
             output_dir = ctx.bin_dir.path,
             manifest = manifest.path,
         ),
@@ -149,7 +160,7 @@ def _uht_codegen_impl(ctx):
 
             # UHT requires running from UE root and needs to write to Engine/Saved/
             cd {ue_root}
-            "$DOTNET" "$UBT" -Mode=UnrealHeaderTool "$PROJECT" "$MANIFEST" -Verbose || true
+            "$DOTNET" "$UBT" -Mode=UnrealHeaderTool "$PROJECT" "$MANIFEST" -Verbose
 
             # Return to execroot for file operations
             cd "$EXECROOT"
