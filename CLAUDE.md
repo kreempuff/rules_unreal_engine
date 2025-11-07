@@ -1,5 +1,21 @@
 # rules_unreal_engine - Project Context
 
+## Development Session Tracking
+
+**IMPORTANT: Use CURRENT_WORK.md for Active Debugging**
+
+When working on complex debugging sessions that span multiple conversations:
+1. Create/update `CURRENT_WORK.md` with:
+   - Problem statement
+   - What we've tried
+   - Current theories
+   - Next debugging steps
+   - Relevant code locations
+2. Commit to branch (not to main - it's work-in-progress notes)
+3. Next session: Read CURRENT_WORK.md first to resume context
+
+**Why:** Complex issues (like UHT file generation) need persistent state across sessions. Don't rely on conversation history alone.
+
 ## Why This Project Exists
 
 This project was created to replace Unreal Engine's .NET-based build system (UnrealBuildTool and UnrealAutomationTool) with a Bazel + Go implementation.
@@ -48,6 +64,13 @@ just ue-cook  # Cook the game for Mac platform
 6. **Time Spent Debugging:** ~3 hours and counting
 7. **Time to Fix with Working Build System:** ~0 seconds
 
+**Note:** Development happens in sibling directories:
+```
+workspace/
+├── rules_unreal_engine/  # This project
+└── UnrealEngine/         # Your UE clone
+```
+
 #### What Happens Next: The ShaderCompileWorker Saga
 
 **Date:** 2025-10-30 (continued)
@@ -61,8 +84,8 @@ just ue-cook  # Cook the game for Mac platform
 2. **ShaderCompileWorker Crashes**
    ```
    dyld[97617]: Symbol not found: __ZNSt12length_errorD1Ev
-     Referenced from: <112CFFC8-73BD-3194-B4A2-CEB698790C9F> ShaderCompileWorker-Core.dylib
-     Expected in:     <7D70205D-2B4C-36B0-BE24-6BD483FD4DB8> libtbb.dylib
+     Referenced from: <...> ShaderCompileWorker-Core.dylib
+     Expected in:     <...> libtbb.dylib
 
    LogShaderCompilers: Error: ShaderCompileWorker terminated unexpectedly!
    LogShaderCompilers: Error: Falling back to directly compiling which will be very slow.
@@ -72,11 +95,11 @@ just ue-cook  # Cook the game for Mac platform
    - ShaderCompileWorker-Core.dylib compiled with older Xcode version
    - libtbb.dylib has different C++ standard library ABI
    - Symbol `std::length_error` destructor missing
-   - Xcode version changes (26.0.1 → 15.4 → 16.1) caused mismatch
+   - Xcode version changes caused mismatch
 
 4. **The "Solution": Rebuild the Entire Engine**
    ```bash
-   cd /Users/kareemmarch/projects/UnrealEngine
+   cd ../UnrealEngine
    ./Engine/Build/BatchFiles/Mac/Build.sh UnrealEditor Mac Development
    ```
    - **Total Actions:** 4,958
@@ -217,12 +240,16 @@ bazel build //game:package_mac
 
 ### References
 
-**Current Debugging Session:**
-- Branch: `ops/build-cook-package` (Kra project)
-- Files Modified:
-  - `/Users/kareemmarch/projects/UnrealEngine/Engine/Source/Programs/AutomationTool/Program.cs` (lines 515-525)
-  - `/Users/kareemmarch/projects/UnrealEngine/Engine/Source/Programs/AutomationTool/Gauntlet/Gauntlet.Automation.csproj` (line 14)
-  - `/Users/kareemmarch/projects/UnrealEngine/Engine/Source/Programs/AutomationTool/AutomationUtils/AutomationUtils.Automation.csproj` (line 14)
+**Note on File Paths:**
+- When examples show file paths, assume UnrealEngine/ is a sibling of rules_unreal_engine/
+- Example structure: `workspace/rules_unreal_engine/` and `workspace/UnrealEngine/`
+
+**Example Debugging Session (Historical):**
+- Branch: `ops/build-cook-package` (game project)
+- Files Modified in UnrealEngine clone:
+  - `Engine/Source/Programs/AutomationTool/Program.cs` (lines 515-525)
+  - `Engine/Source/Programs/AutomationTool/Gauntlet/Gauntlet.Automation.csproj` (line 14)
+  - `Engine/Source/Programs/AutomationTool/AutomationUtils/AutomationUtils.Automation.csproj` (line 14)
 
 **Related Documentation:**
 - `docs/effort-estimate.md` - Full effort estimate for 1.0 release
@@ -364,7 +391,7 @@ When testing features that interact with Unreal Engine source code:
 
 ❌ **DO NOT:**
 - Modify files in actual UnrealEngine repository during tests
-- Write BUILD files directly to /Users/kareemmarch/Projects/UnrealEngine
+- Write BUILD files directly to ../UnrealEngine/ (sibling directory)
 - Depend on specific UE checkout states in tests
 
 **Example:**
@@ -437,7 +464,7 @@ Some UE modules (e.g., OodleDataCompression) currently link against precompiled 
 
 ```bash
 # Setup test UE repository (first time only)
-just setup-test-ue         # Clones from /Users/kareemmarch/Projects/UnrealEngine
+just setup-test-ue         # Clones from ../UnrealEngine (sibling directory)
 
 # Install BUILD files to test repo
 just install .test_ue/UnrealEngine
