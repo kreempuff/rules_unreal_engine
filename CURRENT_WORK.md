@@ -120,7 +120,9 @@ done
 - Derives BaseDirectory from first header
 - Calls gitDeps to generate JSON
 
-## Next Steps to Debug
+## TODO: Next Debugging Steps
+
+### Immediate (Next Session)
 
 1. **Add verbose logging to copy script:**
    ```bash
@@ -142,6 +144,19 @@ done
    - Print manifest before UHT
    - Verify OutputDirectory is writable
    - Test with simpler absolute paths
+
+### Completed So Far
+
+- [x] Created uhtscan tool (cmd/uhtscan/main.go) - 90 lines
+- [x] Validated uhtscan: 24/24 CoreUObject headers (perfect match with Epic)
+- [x] Integrated uhtscan into bzl/uht.bzl manifest generation
+- [x] Derived BaseDirectory from filtered headers
+- [x] Removed || true to expose actual errors
+- [x] Clean rebuild confirms UHT runs and reports success
+- [ ] **DEBUG:** Files are 0 bytes despite "50 written" - root cause unknown
+- [ ] Fix file generation/copying
+- [ ] Verify CoreUObject .generated.h files have content
+- [ ] Confirm TestModule uses CoreUObject reflection internals
 
 ## Success Criteria
 
