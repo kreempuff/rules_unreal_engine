@@ -45,7 +45,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Setup UE clone cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ github.workspace }}/../ue-clone
           key: ${{ runner.os }}-ue-${{ hashFiles('MODULE.bazel') }}
@@ -74,7 +74,7 @@ jobs:
       - name: Setup Bazel cache
         run: mkdir -p ~/.cache/bazel
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: ~/.cache/bazel
           key: ${{ runner.os }}-bazel-${{ hashFiles('./MODULE.bazel', './MODULE.bazel.lock', '**/BUILD', '**/BUILD.bzl', '**/*.bzl', '.bazelrc') }}
