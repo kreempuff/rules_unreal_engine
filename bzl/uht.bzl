@@ -115,6 +115,7 @@ def _uht_codegen_impl(ctx):
             $GITDEPS uht manifest \
                 --module-name {module_name} \
                 --module-type {module_type} \
+                --game-target={game_target} \
                 --base-dir "$BASE_DIR" \
                 --output-dir {output_dir} \
                 --headers "$HEADERS_CSV" \
@@ -125,6 +126,7 @@ def _uht_codegen_impl(ctx):
             headers = all_header_paths,
             module_name = ctx.attr.module_name,
             module_type = ctx.attr.module_type,
+            game_target = "true" if ctx.attr.game_target else "false",
             fallback_base_dir = ctx.bin_dir.path,
             output_dir = ctx.bin_dir.path,
             manifest = manifest.path,
@@ -160,27 +162,49 @@ def _uht_codegen_impl(ctx):
 
             # UHT requires running from UE root and needs to write to Engine/Saved/
             cd {ue_root}
-            "$DOTNET" "$UBT" -Mode=UnrealHeaderTool "$PROJECT" "$MANIFEST" -Verbose
+            "$DOTNET" "$UBT" -Mode=UnrealHeaderTool "$PROJECT" "$MANIFEST" -NoGoWide
+            UHT_EXIT=$?
+            if [ $UHT_EXIT -ne 0 ]; then
+                echo "ERROR: UHT failed with exit code $UHT_EXIT" >&2
+                cat {ue_root}/Engine/Programs/UnrealHeaderTool/Saved/Logs/UnrealHeaderTool.log >&2
+                exit $UHT_EXIT
+            fi
 
             # Return to execroot for file operations
             cd "$EXECROOT"
 
             # Copy UHT outputs to Bazel output locations
-            # UHT generates TestEnum.gen.cpp, we expect Public_TestEnum.gen.cpp
+            # UHT writes to the absolute OutputDirectory from the manifest
+            # Use $OUTPUT_DIR (resolved before cd) for file lookups
             for out in {outputs}; do
                 OUTBASE=$(basename "$out")
-                # Try direct match first
-                if [ -f "{output_dir}/$OUTBASE" ]; then
-                    cp "{output_dir}/$OUTBASE" "$out"
+
+                # Try direct match first (e.g., TestModule.init.gen.cpp)
+                if [ -f "$OUTPUT_DIR/$OUTBASE" ]; then
+                    cp "$OUTPUT_DIR/$OUTBASE" "$out"
                     continue
                 fi
-                # Try unsanitized name (Public_TestEnum.gen.cpp → TestEnum.gen.cpp)
-                UNSANITIZED=$(echo "$OUTBASE" | sed 's/^[^_]*_//')
-                if [ -f "{output_dir}/$UNSANITIZED" ]; then
-                    cp "{output_dir}/$UNSANITIZED" "$out"
+
+                # Extract UHT filename from sanitized Bazel name
+                # Sanitized: external_foo_bar_Public_TestEnum.generated.h
+                # UHT writes: TestEnum.generated.h
+                if echo "$OUTBASE" | grep -q '\\.generated\\.h$'; then
+                    STEM=$(echo "$OUTBASE" | sed 's/\\.generated\\.h$//')
+                    UHT_NAME="${{STEM##*_}}.generated.h"
+                elif echo "$OUTBASE" | grep -q '\\.gen\\.cpp$'; then
+                    STEM=$(echo "$OUTBASE" | sed 's/\\.gen\\.cpp$//')
+                    UHT_NAME="${{STEM##*_}}.gen.cpp"
+                else
+                    UHT_NAME="$OUTBASE"
+                fi
+
+                if [ -f "$OUTPUT_DIR/$UHT_NAME" ]; then
+                    cp "$OUTPUT_DIR/$UHT_NAME" "$out"
                     continue
                 fi
-                # File not generated, create placeholder
+
+                # File not generated — create empty stub
+                # Some modules have no UHT-reflectable types and legitimately produce 0 output
                 touch "$out"
             done
         """.format(
@@ -206,6 +230,7 @@ uht_codegen = rule(
     attrs = {
         "module_name": attr.string(mandatory = True),
         "module_type": attr.string(default = "Runtime"),
+        "game_target": attr.bool(default = True),
         "hdrs": attr.label_list(allow_files = [".h", ".hpp", ".inl", ".cpp"]),  # .cpp for unity builds
         "_gitdeps": attr.label(
             default = Label("//:rules_unreal_engine"),

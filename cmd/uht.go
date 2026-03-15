@@ -26,6 +26,7 @@ and where to write generated reflection code.`,
 		// Get flags
 		moduleName, _ := cmd.Flags().GetString("module-name")
 		moduleType, _ := cmd.Flags().GetString("module-type")
+		isGameTarget, _ := cmd.Flags().GetBool("game-target")
 		baseDir, _ := cmd.Flags().GetString("base-dir")
 		outputDir, _ := cmd.Flags().GetString("output-dir")
 		headersStr, _ := cmd.Flags().GetString("headers")
@@ -41,13 +42,14 @@ and where to write generated reflection code.`,
 
 		// Generate manifest
 		opts := uht.GenerateManifestOptions{
-			ModuleName: moduleName,
-			ModuleType: moduleType,
-			BaseDir:    baseDir,
-			OutputDir:  outputDir,
-			Headers:    headers,
-			UERoot:     ueRoot,
-			TargetName: targetName,
+			ModuleName:   moduleName,
+			ModuleType:   moduleType,
+			IsGameTarget: isGameTarget,
+			BaseDir:      baseDir,
+			OutputDir:    outputDir,
+			Headers:      headers,
+			UERoot:       ueRoot,
+			TargetName:   targetName,
 		}
 
 		if err := uht.WriteManifestFile(output, opts); err != nil {
@@ -66,6 +68,7 @@ func init() {
 	// Define flags for manifest command
 	uhtManifestCmd.Flags().String("module-name", "", "Module name (e.g., 'Core', 'TestModule')")
 	uhtManifestCmd.Flags().String("module-type", "Runtime", "Module type (Runtime, Developer, Editor, Program)")
+	uhtManifestCmd.Flags().Bool("game-target", true, "Whether this is a game target (true) or engine target (false)")
 	uhtManifestCmd.Flags().String("base-dir", "", "Module base directory (absolute path)")
 	uhtManifestCmd.Flags().String("output-dir", "", "Output directory for generated files (absolute path)")
 	uhtManifestCmd.Flags().String("headers", "", "Comma-separated list of header files (absolute paths)")

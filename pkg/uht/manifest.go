@@ -10,34 +10,47 @@ import (
 // UHTManifest represents the JSON manifest file that UHT expects
 // Based on Epic's UHTManifest type from Engine/Source/Programs/Shared/EpicGames.Core/UHTTypes.cs
 type UHTManifest struct {
-	IsGameTarget bool        `json:"IsGameTarget"`
-	RootLocalPath string     `json:"RootLocalPath"`
-	TargetName string        `json:"TargetName"`
-	Modules []UHTModule      `json:"Modules"`
+	IsGameTarget           bool        `json:"IsGameTarget"`
+	RootLocalPath          string      `json:"RootLocalPath"`
+	TargetName             string      `json:"TargetName"`
+	ExternalDependenciesFile string    `json:"ExternalDependenciesFile"`
+	Modules                []UHTModule `json:"Modules"`
 }
 
 // UHTModule represents a single module in the manifest
 type UHTModule struct {
 	Name                     string   `json:"Name"`
-	ModuleType              string   `json:"ModuleType"`
-	BaseDirectory           string   `json:"BaseDirectory"`
-	IncludePaths            []string `json:"IncludePaths"`
-	OutputDirectory         string   `json:"OutputDirectory"`
-	PublicHeaders           []string `json:"PublicHeaders"`
-	GeneratedCPPFilenameBase string  `json:"GeneratedCPPFilenameBase"`
-	SaveExportedHeaders     bool     `json:"SaveExportedHeaders"`
-	UHTGeneratedCodeVersion string   `json:"UHTGeneratedCodeVersion"`
+	ModuleType               string   `json:"ModuleType"`
+	OverrideModuleType       string   `json:"OverrideModuleType"`
+	BaseDirectory            string   `json:"BaseDirectory"`
+	IncludePaths             []string `json:"IncludePaths"`
+	OutputDirectory          string   `json:"OutputDirectory"`
+	ClassesHeaders           []string `json:"ClassesHeaders"`
+	PublicHeaders            []string `json:"PublicHeaders"`
+	InternalHeaders          []string `json:"InternalHeaders"`
+	PrivateHeaders           []string `json:"PrivateHeaders"`
+	PublicDefines            []string `json:"PublicDefines"`
+	GeneratedCPPFilenameBase string   `json:"GeneratedCPPFilenameBase"`
+	SaveExportedHeaders      bool     `json:"SaveExportedHeaders"`
+	UHTGeneratedCodeVersion  string   `json:"UHTGeneratedCodeVersion"`
+	VersePath                string   `json:"VersePath"`
+	VerseScope               string   `json:"VerseScope"`
+	HasVerse                 bool     `json:"HasVerse"`
+	VerseMountPoint          string   `json:"VerseMountPoint"`
+	AlwaysExportStructs      bool     `json:"AlwaysExportStructs"`
+	AlwaysExportEnums        bool     `json:"AlwaysExportEnums"`
 }
 
 // GenerateManifestOptions contains parameters for manifest generation
 type GenerateManifestOptions struct {
-	ModuleName  string
-	ModuleType  string   // "Runtime", "Developer", "Editor", etc.
-	BaseDir     string   // Module source directory (absolute path)
-	OutputDir   string   // Where UHT writes generated files (absolute path)
-	Headers     []string // List of header files (absolute paths)
-	UERoot      string   // Unreal Engine root directory
-	TargetName  string   // Build target name (default: "BazelTarget")
+	ModuleName   string
+	ModuleType   string   // "Runtime", "Developer", "Editor", etc.
+	IsGameTarget bool     // true for game modules, false for engine modules
+	BaseDir      string   // Module source directory (absolute path)
+	OutputDir    string   // Where UHT writes generated files (absolute path)
+	Headers      []string // List of header files (absolute paths)
+	UERoot       string   // Unreal Engine root directory
+	TargetName   string   // Build target name (default: "BazelTarget")
 }
 
 // GenerateManifest creates a UHT manifest JSON file
@@ -98,25 +111,44 @@ func GenerateManifest(opts GenerateManifestOptions) ([]byte, error) {
 		filepath.Join(absBaseDir, "Private"),
 	}
 
-	// Build module entry
+	// Determine module type prefix based on whether this is a game target
+	// UHT expects "GameRuntime" for game modules, "EngineRuntime" for engine modules
+	moduleTypePrefix := "Game"
+	if !opts.IsGameTarget {
+		moduleTypePrefix = "Engine"
+	}
+
+	// Build module entry matching Epic's UHTManifest.Module schema
 	module := UHTModule{
 		Name:                     opts.ModuleName,
-		ModuleType:              "Engine" + opts.ModuleType, // "EngineRuntime", "EngineDeveloper", etc.
-		BaseDirectory:           absBaseDir,
-		IncludePaths:            includePaths,
-		OutputDirectory:         absOutputDir,
-		PublicHeaders:           absHeaders,
+		ModuleType:               moduleTypePrefix + opts.ModuleType, // "GameRuntime", "EngineRuntime", etc.
+		OverrideModuleType:       "None",
+		BaseDirectory:            absBaseDir,
+		IncludePaths:             includePaths,
+		OutputDirectory:          absOutputDir,
+		ClassesHeaders:           []string{},
+		PublicHeaders:            absHeaders,
+		InternalHeaders:          []string{},
+		PrivateHeaders:           []string{},
+		PublicDefines:            []string{},
 		GeneratedCPPFilenameBase: filepath.Join(absOutputDir, opts.ModuleName+".gen"),
-		SaveExportedHeaders:     true,
-		UHTGeneratedCodeVersion: "None",
+		SaveExportedHeaders:      true,
+		UHTGeneratedCodeVersion:  "None",
+		VersePath:                "",
+		VerseScope:               "PublicUser",
+		HasVerse:                 false,
+		VerseMountPoint:          "",
+		AlwaysExportStructs:      true,
+		AlwaysExportEnums:        true,
 	}
 
 	// Build manifest
 	manifest := UHTManifest{
-		IsGameTarget:  true,
-		RootLocalPath: absUERoot,
-		TargetName:    opts.TargetName,
-		Modules:       []UHTModule{module},
+		IsGameTarget:            opts.IsGameTarget,
+		RootLocalPath:           absUERoot,
+		TargetName:              opts.TargetName,
+		ExternalDependenciesFile: "",
+		Modules:                 []UHTModule{module},
 	}
 
 	// Serialize to JSON with indentation
