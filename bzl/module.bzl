@@ -362,6 +362,10 @@ def ue_module(
     if private_includes:
         includes.extend(private_includes)
 
+    # Add UHT output directory so #include "Foo.generated.h" resolves
+    if _enable_uht:
+        includes.append(name + "_uht_gen")
+
     # Separate C and C++ source files
     if _auto_globbed_srcs:
         # Already separated during glob
