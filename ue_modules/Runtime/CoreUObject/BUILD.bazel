@@ -14,16 +14,16 @@ ue_module(
 
     # From CoreUObject.Build.cs: PublicDependencyModuleNames
     public_deps = [
-        "//Engine/Source/Runtime/Core",
-        "//Engine/Source/Runtime/TraceLog",
-        "//Engine/Source/Runtime/CorePreciseFP",
+        "//UnrealEngine/Engine/Source/Runtime/Core",
+        "//UnrealEngine/Engine/Source/Runtime/TraceLog",
+        "//UnrealEngine/Engine/Source/Runtime/CorePreciseFP",
     ],
 
     # From CoreUObject.Build.cs: PrivateDependencyModuleNames
     private_deps = [
-        "//Engine/Source/Runtime/AutoRTFM",
-        "//Engine/Source/Runtime/Projects",
-        "//Engine/Source/Runtime/Json",
+        "//UnrealEngine/Engine/Source/Runtime/AutoRTFM",
+        "//UnrealEngine/Engine/Source/Runtime/Projects",
+        "//UnrealEngine/Engine/Source/Runtime/Json",
         # DerivedDataCache - editor-only, skip for now
         # ApplicationCore - optional, skip for now
     ],

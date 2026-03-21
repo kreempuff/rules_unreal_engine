@@ -17,7 +17,7 @@ ue_module(
     # Header-only dependency on Core for HAL/Platform.h (DLLEXPORT/DLLIMPORT)
     # Uses PrivateIncludePathModuleNames, not a link dependency
     private_deps = [
-        "//Engine/Source/Runtime/Core:Core_headers",
+        "//UnrealEngine/Engine/Source/Runtime/Core:Core_headers",
     ],
 
     # Note: AutoRTFM.Build.cs has extensive warning settings (all warnings as errors)

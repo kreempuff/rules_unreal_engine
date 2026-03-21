@@ -51,6 +51,6 @@ ue_module(
 
     # From BuildSettings.Build.cs: PrivateIncludePathModuleNames.Add("Core")
     # Needs Core headers but doesn't link (header-only dependency)
-    public_deps = ["//Engine/Source/Runtime/Core:Core_headers"],
+    public_deps = ["//UnrealEngine/Engine/Source/Runtime/Core:Core_headers"],
     visibility = ["//visibility:public"],
 )

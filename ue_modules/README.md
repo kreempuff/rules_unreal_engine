@@ -81,7 +81,7 @@ ln -sf /path/to/rules_unreal_engine/ue_modules/Runtime/Core/BUILD.bazel .
    ue_module(
        name = "MyModule",
        module_type = "Runtime",
-       public_deps = ["//Engine/Source/Runtime/Core"],
+       public_deps = ["//UnrealEngine/Engine/Source/Runtime/Core"],
        visibility = ["//visibility:public"],
    )
    ```
@@ -99,7 +99,7 @@ ln -sf /path/to/rules_unreal_engine/ue_modules/Runtime/Core/BUILD.bazel .
 
    # Build
    cd /path/to/UE
-   bazel build //Engine/Source/Runtime/MyModule
+   bazel build //UnrealEngine/Engine/Source/Runtime/MyModule
    ```
 
 ## Known Issues

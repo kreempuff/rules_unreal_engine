@@ -37,13 +37,13 @@ ue_module(
 
     # From Core.Build.cs: PrivateDependencyModuleNames
     private_deps = [
-        "//Engine/Source/Runtime/BuildSettings",
-        "//Engine/Source/Runtime/AutoRTFM",
-        "//Engine/Source/Runtime/Launch",  # Minimal header-only (just Version.h)
-        "//Engine/Source/ThirdParty/BLAKE3",
-        "//Engine/Source/Runtime/OodleDataCompression",
-        "//Engine/Source/ThirdParty/xxhash",
-        "//Engine/Source/ThirdParty/PLCrashReporter",  # Mac crash reporting (Mac only via target_compatible_with)
+        "//UnrealEngine/Engine/Source/Runtime/BuildSettings",
+        "//UnrealEngine/Engine/Source/Runtime/AutoRTFM",
+        "//UnrealEngine/Engine/Source/Runtime/Launch",  # Minimal header-only (just Version.h)
+        "//UnrealEngine/Engine/Source/ThirdParty/BLAKE3",
+        "//UnrealEngine/Engine/Source/Runtime/OodleDataCompression",
+        "//UnrealEngine/Engine/Source/ThirdParty/xxhash",
+        "//UnrealEngine/Engine/Source/ThirdParty/PLCrashReporter",  # Mac crash reporting (Mac only via target_compatible_with)
         # TODO: Platform-specific dependencies:
         # - mimalloc (Windows/Linux allocator)
         # - IntelTBB (threading library)
@@ -61,10 +61,15 @@ ue_module(
     # From Core.Build.cs: PublicDependencyModuleNames
     # Note: Core_headers is for EXTERNAL modules to depend on
     # Core itself auto-discovers its own headers via ue_module
+    # PublicIncludePathModuleNames — include-path only, no link dep
+    # Carried by _headers target to break circular deps
+    public_header_deps = [
+        "//UnrealEngine/Engine/Source/Runtime/ImageCore:ImageCore_headers",
+    ],
     public_deps = [
-        "//Engine/Source/Runtime/TraceLog",
-        "//Engine/Source/ThirdParty/GuidelinesSupportLibrary",
-        "//Engine/Source/ThirdParty/AtomicQueue",
+        "//UnrealEngine/Engine/Source/Runtime/TraceLog",
+        "//UnrealEngine/Engine/Source/ThirdParty/GuidelinesSupportLibrary",
+        "//UnrealEngine/Engine/Source/ThirdParty/AtomicQueue",
     ],
     visibility = ["//visibility:public"],
 )

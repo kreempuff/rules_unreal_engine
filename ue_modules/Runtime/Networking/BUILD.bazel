@@ -14,8 +14,8 @@ ue_module(
 
     # From Networking.Build.cs: PublicDependencyModuleNames
     public_deps = [
-        "//Engine/Source/Runtime/Core",
-        "//Engine/Source/Runtime/Sockets",
+        "//UnrealEngine/Engine/Source/Runtime/Core",
+        "//UnrealEngine/Engine/Source/Runtime/Sockets",
     ],
     visibility = ["//visibility:public"],
 )

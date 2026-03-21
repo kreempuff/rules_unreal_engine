@@ -14,7 +14,7 @@ ue_module(
 
     # From SandboxFile.Build.cs: PrivateDependencyModuleNames
     private_deps = [
-        "//Engine/Source/Runtime/Core",
+        "//UnrealEngine/Engine/Source/Runtime/Core",
     ],
     visibility = ["//visibility:public"],
 )

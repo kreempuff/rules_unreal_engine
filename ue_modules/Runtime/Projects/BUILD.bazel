@@ -29,8 +29,8 @@ ue_module(
 
     # From Projects.Build.cs: PublicDependencyModuleNames
     public_deps = [
-        "//Engine/Source/Runtime/Core",
-        "//Engine/Source/Runtime/Json",
+        "//UnrealEngine/Engine/Source/Runtime/Core",
+        "//UnrealEngine/Engine/Source/Runtime/Json",
     ],
     visibility = ["//visibility:public"],
 )

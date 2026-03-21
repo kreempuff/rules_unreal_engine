@@ -53,6 +53,7 @@ def ue_module(
         additional_hdrs = [],
         public_deps = [],
         private_deps = [],
+        public_header_deps = [],
         public_includes = [],
         private_includes = [],
         system_includes = [],
@@ -227,6 +228,10 @@ def ue_module(
 
     # Add additional headers (e.g., unity build .cpp files that should be included)
     hdrs = hdrs + additional_hdrs
+
+    # Capture source headers before UHT outputs are added
+    # Used for _headers target which must not trigger UHT (breaks cycles)
+    source_hdrs = hdrs
 
     # Generate UHT code for reflection (UCLASS/USTRUCT/UENUM)
     # Automatically disabled for ThirdParty modules
@@ -428,9 +433,13 @@ def ue_module(
 
     # Create headers-only target (for circular dependencies and faster compiles)
     # Every ue_module automatically gets a {name}_headers target
+    # NOTE: _headers intentionally has NO deps to break circular dependencies
+    # (e.g., Core ↔ TraceLog). Include paths from deps are added explicitly
+    # via public_header_deps for deps that only need include-path visibility.
     cc_library(
         name = name + "_headers",
-        hdrs = hdrs,
+        hdrs = source_hdrs,
+        deps = public_header_deps,
         includes = includes,
         defines = all_defines,  # Public defines (no local_defines - those are private)
         visibility = visibility,

@@ -14,8 +14,8 @@ ue_module(
 
     # From Json.Build.cs: PublicDependencyModuleNames
     public_deps = [
-        "//Engine/Source/Runtime/Core",
-        "//Engine/Source/ThirdParty/RapidJSON",
+        "//UnrealEngine/Engine/Source/Runtime/Core",
+        "//UnrealEngine/Engine/Source/ThirdParty/RapidJSON",
     ],
     visibility = ["//visibility:public"],
 )

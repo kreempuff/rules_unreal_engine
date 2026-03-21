@@ -14,7 +14,7 @@ ue_module(
 
     # From NetCommon.Build.cs: PublicDependencyModuleNames
     public_deps = [
-        "//Engine/Source/Runtime/Core",
+        "//UnrealEngine/Engine/Source/Runtime/Core",
     ],
     visibility = ["//visibility:public"],
 )

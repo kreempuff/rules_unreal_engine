@@ -159,4 +159,5 @@ UHT pipeline is fully working end-to-end. The build progresses through UHT codeg
 ## Next Steps
 
 1. **Add missing engine module BUILD files** — ImageCore and other modules that CoreUObject transitively depends on need BUILD files in `ue_modules/`
-2. **Replace UBT with minimal UHT shim** — long-term, write a tiny C# program or Go wrapper that invokes `EpicGames.UHT.dll` directly, bypassing UBT entirely
+2. **Build.cs → BUILD.bazel codegen tool** — C# CLI using Roslyn to parse `.Build.cs` files and emit `ue_module()` Bazel rules. Maps PublicDependencyModuleNames → public_deps, PublicIncludePathModuleNames → headers-only deps, platform conditionals → select(), etc. Runs via UE's bundled dotnet at repo rule time. Replaces manual BUILD file authoring.
+3. **Replace UBT with minimal UHT shim** — long-term, write a tiny C# program or Go wrapper that invokes `EpicGames.UHT.dll` directly, bypassing UBT entirely

@@ -19,8 +19,8 @@ ue_module(
 
     # From Sockets.Build.cs: PrivateDependencyModuleNames
     private_deps = [
-        "//Engine/Source/Runtime/Core",
-        "//Engine/Source/Runtime/Net/Common:NetCommon",
+        "//UnrealEngine/Engine/Source/Runtime/Core",
+        "//UnrealEngine/Engine/Source/Runtime/Net/Common:NetCommon",
     ],
     visibility = ["//visibility:public"],
 )

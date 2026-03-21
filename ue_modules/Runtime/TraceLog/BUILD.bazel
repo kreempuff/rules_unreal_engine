@@ -29,8 +29,8 @@ ue_module(
     # - Core (implementation) depends on TraceLog
     # - No cycle: TraceLog → Core_headers, Core → TraceLog
     public_deps = [
-        "//Engine/Source/Runtime/Core:Core_headers",
-        "//Engine/Source/Runtime/AutoRTFM",  # Needs AutoRTFM.h header
+        "//UnrealEngine/Engine/Source/Runtime/Core:Core_headers",
+        "//UnrealEngine/Engine/Source/Runtime/AutoRTFM",  # Needs AutoRTFM.h header
     ],
     visibility = ["//visibility:public"],
 )
