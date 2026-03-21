@@ -151,13 +151,29 @@ UHT codegen is proven working. TestModule generates 3 files correctly. The build
 - [x] Outputs declared with UHT's actual basenames (e.g., `TestEnum.generated.h`)
 - [x] Added UHT output dir to `includes` in `module.bzl` so `#include "Foo.generated.h"` resolves
 - [x] Confirmed CoreUObject UHT generates real output (e.g., `MetaData.generated.h` = 3978 bytes)
-- [x] Build now gets past UHT-generated header resolution — fails on missing engine module deps (ImageCore)
+- [x] Build gets past UHT-generated header resolution — initially failed on missing ImageCore dep
+
+### Completed (2026-03-19 session)
+- [x] Added ImageCore BUILD file (lightweight image types — FImage, FImageView, ERawImageFormat)
+- [x] Fixed all ue_modules dep paths: `//Engine/Source/` → `//UnrealEngine/Engine/Source/` (34 refs across all BUILD files)
+- [x] Discovered `_headers` targets had no `deps`, so transitive include paths didn't propagate
+- [x] Added `public_header_deps` param to `ue_module()` — maps to UBT's `PublicIncludePathModuleNames` (include-path only, no link)
+- [x] Used `source_hdrs` (pre-UHT) for `_headers` target to avoid triggering UHT and creating circular deps
+- [x] Broke Core ↔ ImageCore cycle: Core uses `public_header_deps` for ImageCore_headers
+- [x] Confirmed no more dependency cycles via `bazel query`
 
 ### Current State
-UHT pipeline is fully working end-to-end. The build progresses through UHT codegen and header resolution. Current failure is `ImageCore.h` not found — a normal missing engine module dependency, not a UHT issue. This means the UHT integration work is complete and the next work is expanding the engine module dependency graph.
+Dependency graph resolves correctly (no cycles). UHT codegen works for all modules. Build fails because TestModule depends on `CoreUObject_headers` which no longer carries UHT-generated headers (by design — `_headers` uses `source_hdrs` to break cycles). TestModule needs `MetaData.generated.h` from CoreUObject's UHT output.
+
+**The core tension:** `_headers` targets must be lightweight (no UHT, no cycles) but downstream modules need UHT-generated `.generated.h` files from their deps to compile.
+
+**Options to resolve:**
+1. TestModule depends on full `CoreUObject` target instead of `CoreUObject_headers` — but this pulls in all of CoreUObject's compilation, which may create more cycles
+2. Create a `{name}_uht_headers` target — carries source headers + UHT-generated headers, used when a module needs generated headers from a dep
+3. Add UHT outputs to the main `cc_library` `hdrs` only (already done) and have TestModule dep on the full target for modules where it needs generated code
 
 ## Next Steps
 
-1. **Add missing engine module BUILD files** — ImageCore and other modules that CoreUObject transitively depends on need BUILD files in `ue_modules/`
-2. **Build.cs → BUILD.bazel codegen tool** — C# CLI using Roslyn to parse `.Build.cs` files and emit `ue_module()` Bazel rules. Maps PublicDependencyModuleNames → public_deps, PublicIncludePathModuleNames → headers-only deps, platform conditionals → select(), etc. Runs via UE's bundled dotnet at repo rule time. Replaces manual BUILD file authoring.
+1. **Resolve _headers vs UHT-generated headers tension** — decide how downstream modules access UHT-generated headers from deps without creating cycles
+2. **Build.cs → BUILD.bazel codegen tool** — C# CLI using Roslyn to parse `.Build.cs` files and emit `ue_module()` Bazel rules. Maps PublicDependencyModuleNames → public_deps, PublicIncludePathModuleNames → public_header_deps, platform conditionals → select(), etc. Runs via UE's bundled dotnet at repo rule time. Replaces manual BUILD file authoring.
 3. **Replace UBT with minimal UHT shim** — long-term, write a tiny C# program or Go wrapper that invokes `EpicGames.UHT.dll` directly, bypassing UBT entirely
