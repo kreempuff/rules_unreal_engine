@@ -162,18 +162,24 @@ UHT codegen is proven working. TestModule generates 3 files correctly. The build
 - [x] Broke Core ↔ ImageCore cycle: Core uses `public_header_deps` for ImageCore_headers
 - [x] Confirmed no more dependency cycles via `bazel query`
 
+### Completed (2026-03-24 session)
+- [x] **Resolved _headers vs UHT tension** — added `{name}_uht_headers` target tier
+- [x] TestModule builds successfully end-to-end (UHT codegen → C++ compilation → library output)
+
 ### Current State
-Dependency graph resolves correctly (no cycles). UHT codegen works for all modules. Build fails because TestModule depends on `CoreUObject_headers` which no longer carries UHT-generated headers (by design — `_headers` uses `source_hdrs` to break cycles). TestModule needs `MetaData.generated.h` from CoreUObject's UHT output.
+**TestModule compiles successfully.** The full UHT pipeline works:
+1. UHT scans headers for reflection macros
+2. Generates `.generated.h` and `.gen.cpp` files
+3. Headers resolve correctly via three-tier target system
+4. C++ compiles and links into `libTestModule.a`
 
-**The core tension:** `_headers` targets must be lightweight (no UHT, no cycles) but downstream modules need UHT-generated `.generated.h` files from their deps to compile.
-
-**Options to resolve:**
-1. TestModule depends on full `CoreUObject` target instead of `CoreUObject_headers` — but this pulls in all of CoreUObject's compilation, which may create more cycles
-2. Create a `{name}_uht_headers` target — carries source headers + UHT-generated headers, used when a module needs generated headers from a dep
-3. Add UHT outputs to the main `cc_library` `hdrs` only (already done) and have TestModule dep on the full target for modules where it needs generated code
+**Three-tier header targets:**
+- `{name}_headers` — source headers only, no UHT (breaks circular deps)
+- `{name}_uht_headers` — source + UHT-generated headers (for modules needing `.generated.h` from deps)
+- `{name}` — full target (compilation + linking)
 
 ## Next Steps
 
-1. **Resolve _headers vs UHT-generated headers tension** — decide how downstream modules access UHT-generated headers from deps without creating cycles
+1. **Expand engine module graph** — add BUILD files for remaining modules that CoreUObject and game modules depend on
 2. **Build.cs → BUILD.bazel codegen tool** — C# CLI using Roslyn to parse `.Build.cs` files and emit `ue_module()` Bazel rules. Maps PublicDependencyModuleNames → public_deps, PublicIncludePathModuleNames → public_header_deps, platform conditionals → select(), etc. Runs via UE's bundled dotnet at repo rule time. Replaces manual BUILD file authoring.
 3. **Replace UBT with minimal UHT shim** — long-term, write a tiny C# program or Go wrapper that invokes `EpicGames.UHT.dll` directly, bypassing UBT entirely

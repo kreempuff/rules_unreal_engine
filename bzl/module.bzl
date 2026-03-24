@@ -431,20 +431,44 @@ def ue_module(
         "ue_module_type:" + module_type,
     ]
 
-    # Create headers-only target (for circular dependencies and faster compiles)
-    # Every ue_module automatically gets a {name}_headers target
-    # NOTE: _headers intentionally has NO deps to break circular dependencies
-    # (e.g., Core ↔ TraceLog). Include paths from deps are added explicitly
-    # via public_header_deps for deps that only need include-path visibility.
+    # Three header targets, each with increasing scope:
+    #
+    # {name}_headers     — source headers only, no UHT, no transitive deps
+    #                      Use to break circular dependencies (e.g., Core ↔ TraceLog)
+    #
+    # {name}_uht_headers — source headers + UHT-generated .generated.h files
+    #                      Use when a downstream module needs generated headers
+    #                      from this dep (e.g., TestModule needs CoreUObject's MetaData.generated.h)
+    #
+    # {name}             — full compilation target (headers + sources + all deps)
+
     cc_library(
         name = name + "_headers",
         hdrs = source_hdrs,
         deps = public_header_deps,
         includes = includes,
-        defines = all_defines,  # Public defines (no local_defines - those are private)
+        defines = all_defines,
         visibility = visibility,
         tags = tags + ["headers_only"],
     )
+
+    if _enable_uht:
+        cc_library(
+            name = name + "_uht_headers",
+            hdrs = hdrs,  # source_hdrs + UHT outputs
+            deps = public_header_deps,
+            includes = includes,
+            defines = all_defines,
+            visibility = visibility,
+            tags = tags + ["uht_headers"],
+        )
+    else:
+        # No UHT — _uht_headers is identical to _headers
+        native.alias(
+            name = name + "_uht_headers",
+            actual = ":" + name + "_headers",
+            visibility = visibility,
+        )
 
     # Create the main cc_library (C++ files only, C files in separate library)
     cc_library(
