@@ -108,6 +108,7 @@ public class BuildCsParser
         var systemIncludes = new List<string>();
         var linkopts = new List<string>();
         var frameworks = new List<string>();
+        var conditionalBlocks = new List<ConditionalBlock>();
         var warnings = new List<string>();
         var useRTTI = false;
         var enableExceptions = false;
@@ -118,7 +119,7 @@ public class BuildCsParser
         {
             if (!TryExtract(statement, publicDeps, privateDeps, publicHeaderDeps,
                 defines, localDefines, publicIncludes, privateIncludes,
-                systemIncludes, linkopts, frameworks, warnings,
+                systemIncludes, linkopts, frameworks, conditionalBlocks, warnings,
                 ref useRTTI, ref enableExceptions, ref isExternal))
             {
                 unrecognized++;
@@ -143,6 +144,7 @@ public class BuildCsParser
             SystemIncludes = systemIncludes,
             Linkopts = linkopts,
             Frameworks = frameworks,
+            ConditionalBlocks = conditionalBlocks,
             UseRTTI = useRTTI,
             EnableExceptions = enableExceptions,
             IsExternal = isExternal,
@@ -151,22 +153,61 @@ public class BuildCsParser
         };
     }
 
+    // Platform condition mapping: C# condition text → Bazel select key
+    private static readonly Dictionary<string, string> PlatformConditionMap = new()
+    {
+        // Target.Platform == UnrealTargetPlatform.X
+        ["UnrealTargetPlatform.Mac"] = "@platforms//os:macos",
+        ["UnrealTargetPlatform.Win64"] = "@platforms//os:windows",
+        ["UnrealTargetPlatform.Linux"] = "@platforms//os:linux",
+        ["UnrealTargetPlatform.LinuxArm64"] = "@platforms//os:linux",
+        ["UnrealTargetPlatform.IOS"] = "@platforms//os:ios",
+        ["UnrealTargetPlatform.Android"] = "@platforms//os:android",
+        ["UnrealTargetPlatform.TVOS"] = "@platforms//os:tvos",
+        ["UnrealTargetPlatform.VisionOS"] = "@platforms//os:visionos",
+
+        // Target.IsInPlatformGroup(UnrealPlatformGroup.X)
+        ["UnrealPlatformGroup.Windows"] = "@platforms//os:windows",
+        ["UnrealPlatformGroup.Linux"] = "@platforms//os:linux",
+        ["UnrealPlatformGroup.Unix"] = "@platforms//os:linux",
+        ["UnrealPlatformGroup.Apple"] = "@platforms//os:macos",
+        ["UnrealPlatformGroup.IOS"] = "@platforms//os:ios",
+        ["UnrealPlatformGroup.Android"] = "@platforms//os:android",
+        ["UnrealPlatformGroup.Desktop"] = "@platforms//os:linux",
+    };
+
+    private static string? TryMapCondition(ExpressionSyntax condition)
+    {
+        var text = condition.ToString();
+
+        // Target.Platform == UnrealTargetPlatform.X
+        foreach (var (key, value) in PlatformConditionMap)
+        {
+            if (text.Contains(key))
+                return value;
+        }
+
+        // Target.Platform.IsInGroup(X) or Target.IsInPlatformGroup(X)
+        // Already covered by the contains check above
+
+        return null;
+    }
+
     private bool TryExtract(
         StatementSyntax statement,
         List<string> publicDeps, List<string> privateDeps, List<string> publicHeaderDeps,
         List<string> defines, List<string> localDefines,
         List<string> publicIncludes, List<string> privateIncludes, List<string> systemIncludes,
         List<string> linkopts, List<string> frameworks,
-        List<string> warnings,
+        List<ConditionalBlock> conditionalBlocks, List<string> warnings,
         ref bool useRTTI, ref bool enableExceptions, ref bool isExternal)
     {
         if (statement is not ExpressionStatementSyntax exprStmt)
         {
-            // If-statements are Phase 2
-            if (statement is IfStatementSyntax)
+            // Handle if-statements: try to map condition to a Bazel platform
+            if (statement is IfStatementSyntax ifStmt)
             {
-                warnings.Add($"Conditional block skipped: {statement.ToString()[..Math.Min(80, statement.ToString().Length)]}");
-                return false;
+                return TryExtractConditional(ifStmt, conditionalBlocks, warnings);
             }
             return false;
         }
@@ -268,6 +309,107 @@ public class BuildCsParser
         }
 
         return false;
+    }
+
+    private bool TryExtractConditional(IfStatementSyntax ifStmt, List<ConditionalBlock> blocks, List<string> warnings)
+    {
+        // Walk the if/else-if chain
+        var current = ifStmt;
+        bool anyMapped = false;
+
+        while (current != null)
+        {
+            var bazelCondition = TryMapCondition(current.Condition);
+
+            if (bazelCondition != null)
+            {
+                // Extract statements from the if-body into a ConditionalBlock
+                var block = ExtractConditionalBody(current.Statement, bazelCondition, current.Condition.ToString());
+                if (block != null)
+                {
+                    blocks.Add(block);
+                    anyMapped = true;
+                }
+            }
+            else
+            {
+                // Unrecognized condition — add warning but don't fail
+                var condText = current.Condition.ToString();
+                if (condText.Length > 80) condText = condText[..80];
+                warnings.Add($"Unrecognized condition: {condText}");
+            }
+
+            // Follow the else-if chain
+            if (current.Else?.Statement is IfStatementSyntax elseIf)
+            {
+                current = elseIf;
+            }
+            else
+            {
+                // Plain else block — skip (would need "//conditions:default" handling)
+                current = null;
+            }
+        }
+
+        return anyMapped;
+    }
+
+    private ConditionalBlock? ExtractConditionalBody(StatementSyntax body, string bazelCondition, string rawCondition)
+    {
+        // Get the list of statements (handle both block and single statements)
+        IEnumerable<StatementSyntax> statements;
+        if (body is BlockSyntax block)
+            statements = block.Statements;
+        else
+            statements = [body];
+
+        var publicDeps = new List<string>();
+        var privateDeps = new List<string>();
+        var publicHeaderDeps = new List<string>();
+        var defines = new List<string>();
+        var localDefines = new List<string>();
+        var publicIncludes = new List<string>();
+        var privateIncludes = new List<string>();
+        var systemIncludes = new List<string>();
+        var linkopts = new List<string>();
+        var frameworks = new List<string>();
+        var nestedBlocks = new List<ConditionalBlock>();
+        var warnings = new List<string>();
+        var useRTTI = false;
+        var enableExceptions = false;
+        var isExternal = false;
+
+        foreach (var stmt in statements)
+        {
+            // Reuse the same extraction logic for inner statements
+            TryExtract(stmt, publicDeps, privateDeps, publicHeaderDeps,
+                defines, localDefines, publicIncludes, privateIncludes,
+                systemIncludes, linkopts, frameworks, nestedBlocks, warnings,
+                ref useRTTI, ref enableExceptions, ref isExternal);
+        }
+
+        // Only create a block if something was extracted
+        if (publicDeps.Count == 0 && privateDeps.Count == 0 && publicHeaderDeps.Count == 0 &&
+            defines.Count == 0 && localDefines.Count == 0 && linkopts.Count == 0 &&
+            frameworks.Count == 0 && systemIncludes.Count == 0 &&
+            publicIncludes.Count == 0 && privateIncludes.Count == 0)
+            return null;
+
+        return new ConditionalBlock
+        {
+            BazelCondition = bazelCondition,
+            RawCondition = rawCondition,
+            PublicDeps = publicDeps,
+            PrivateDeps = privateDeps,
+            PublicHeaderDeps = publicHeaderDeps,
+            Defines = defines,
+            LocalDefines = localDefines,
+            Linkopts = linkopts,
+            Frameworks = frameworks,
+            SystemIncludes = systemIncludes,
+            PublicIncludes = publicIncludes,
+            PrivateIncludes = privateIncludes,
+        };
     }
 
     private static bool TryExtractAdd(InvocationExpressionSyntax invocation, List<string> target)
