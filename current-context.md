@@ -166,12 +166,15 @@ UHT codegen is proven working. TestModule generates 3 files correctly. The build
 - [x] **Resolved _headers vs UHT tension** — added `{name}_uht_headers` target tier
 - [x] TestModule builds successfully end-to-end (UHT codegen → C++ compilation → library output)
 
+### Completed (2026-03-25 session)
+- [x] **Built Build.cs → BUILD.bazel parser** using Roslyn (`tools/buildcs-to-bazel/`)
+- [x] AST-based static analysis — no UBT type dependencies
+- [x] Scanned 870 modules: 447 simple (51%), 253 conditional (29%), 170 complex (19%)
+- [x] Generated 700 BUILD files (81%) — verified against hand-written Json, ImageCore, Projects, Networking
+- [x] Three commands: `scan` (complexity report), `generate` (emit BUILD files), `resolve` (module name→label map)
+
 ### Current State
-**TestModule compiles successfully.** The full UHT pipeline works:
-1. UHT scans headers for reflection macros
-2. Generates `.generated.h` and `.gen.cpp` files
-3. Headers resolve correctly via three-tier target system
-4. C++ compiles and links into `libTestModule.a`
+**TestModule compiles successfully.** The full UHT pipeline works. Build.cs parser generates correct BUILD files for 700/870 modules.
 
 **Three-tier header targets:**
 - `{name}_headers` — source headers only, no UHT (breaks circular deps)
@@ -180,6 +183,7 @@ UHT codegen is proven working. TestModule generates 3 files correctly. The build
 
 ## Next Steps
 
-1. **Expand engine module graph** — add BUILD files for remaining modules that CoreUObject and game modules depend on
-2. **Build.cs → BUILD.bazel codegen tool** — C# CLI using Roslyn to parse `.Build.cs` files and emit `ue_module()` Bazel rules. Maps PublicDependencyModuleNames → public_deps, PublicIncludePathModuleNames → public_header_deps, platform conditionals → select(), etc. Runs via UE's bundled dotnet at repo rule time. Replaces manual BUILD file authoring.
-3. **Replace UBT with minimal UHT shim** — long-term, write a tiny C# program or Go wrapper that invokes `EpicGames.UHT.dll` directly, bypassing UBT entirely
+1. **Integrate parser into repo rule** — invoke buildcs-to-bazel in `internal/repo/rule.bzl` after UBT compilation, before BUILD installation. Hand-written ue_modules/ always takes priority.
+2. **Phase 2: platform conditionals** — parse `if (Target.Platform == ...)` → `select()`. Covers the 253 conditional modules.
+3. **Design custom Bazel providers** — UeModuleInfo provider to replace three-tier target pattern. Informed by Build.cs property set from parser.
+4. **Replace UBT with minimal UHT shim** — invoke EpicGames.UHT.dll directly, bypass UBT.

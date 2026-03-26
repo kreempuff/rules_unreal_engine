@@ -250,6 +250,44 @@ def _unreal_engine_impl(repo_ctx):
 
     print("UnrealBuildTool built successfully")
 
+    # Generate BUILD.bazel files from .Build.cs using Roslyn parser
+    print("Generating BUILD.bazel files from .Build.cs...")
+    buildcs_parser_src = repo_ctx.path(Label("//tools/buildcs-to-bazel:BuildCsToBazel.csproj"))
+
+    parser_result = repo_ctx.execute([
+        dotnet_binary,
+        "run",
+        "--project", str(buildcs_parser_src),
+        "--",
+        "generate",
+        "--ue-source", "UnrealEngine/Engine/Source",
+        "--output", "generated_ue_modules",
+        "--skip-complex",
+    ], timeout = 120)
+
+    if parser_result.return_code != 0:
+        # Non-fatal: generated modules are supplementary, hand-written ones are primary
+        print("WARNING: Build.cs parser failed (non-fatal):\n{}{}".format(
+            parser_result.stdout, parser_result.stderr))
+    else:
+        # Install generated BUILD files into the UE clone
+        gen_result = repo_ctx.execute([
+            "find", "generated_ue_modules", "-name", "BUILD.bazel", "-type", "f",
+        ])
+        if gen_result.return_code == 0:
+            gen_files = gen_result.stdout.strip().split("\n")
+            gen_count = 0
+            for gen_path in gen_files:
+                if not gen_path:
+                    continue
+                # generated_ue_modules/Runtime/Json/BUILD.bazel → UnrealEngine/Engine/Source/Runtime/Json/BUILD.bazel
+                rel_path = gen_path.replace("generated_ue_modules/", "")
+                target_path = "UnrealEngine/Engine/Source/" + rel_path
+                gen_content = repo_ctx.read(gen_path)
+                repo_ctx.file(target_path, gen_content)
+                gen_count += 1
+            print("Installed {} generated BUILD files from .Build.cs".format(gen_count))
+
     # Export bundled tools for UHT code generation
     # Platform-specific dotnet binary paths
     dotnet_builds = {
