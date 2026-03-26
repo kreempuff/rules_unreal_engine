@@ -71,7 +71,9 @@ public class BuildCsParser
             };
         }
 
-        var moduleName = classDecl.Identifier.Text;
+        // Use filename for module name (matches UBT's module resolution and our ModulePathResolver)
+        // Class name can differ in case (e.g., UELibSampleRate class in UElibSampleRate.Build.cs)
+        var moduleName = Path.GetFileNameWithoutExtension(filePath).Replace(".Build", "");
 
         // Find constructor
         var constructor = classDecl.DescendantNodes()
