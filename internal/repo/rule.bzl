@@ -262,7 +262,6 @@ def _unreal_engine_impl(repo_ctx):
         "generate",
         "--ue-source", "UnrealEngine/Engine/Source",
         "--output", "generated_ue_modules",
-        "--skip-complex",
     ], timeout = 120)
 
     if parser_result.return_code != 0:
