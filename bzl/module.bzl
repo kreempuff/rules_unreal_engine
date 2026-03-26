@@ -363,9 +363,8 @@ def ue_module(
         cpp_files = [s for s in srcs if not s.endswith(".c")]
 
     # Collect all dependencies
-    deps = []
-    deps.extend(public_deps)
-    deps.extend(private_deps)
+    # Use + operator instead of extend() to support select() values
+    deps = public_deps + private_deps
 
     # If we have C files, create a separate C library with C-specific flags
     if c_files:
