@@ -381,7 +381,7 @@ def ue_module(
             visibility = ["//visibility:private"],
         )
         # Add C library as dependency for main target
-        deps.append(":" + c_lib_name)
+        deps = deps + [":" + c_lib_name]
 
     # Process frameworks and linkopts
     # Note: frameworks should be pre-formatted as "-framework Name" when using select()
