@@ -1,4 +1,12 @@
-# Current Context: UHT Code Generation Debugging
+# Current Context: Bazel Build System for Unreal Engine
+
+## Ultimate Goal
+
+1. **`bazel build //:UnrealEditor`** — build and run the Unreal Editor
+2. **`bazel build //:KraGame`** — build and run a game client target
+3. **`bazel build //:KraServer --platforms=@platforms//os:linux`** — build a dedicated server for Linux
+
+Everything else is in service of these targets.
 
 **Date:** 2025-11-07 → 2026-03-14 (resumed)
 **Branch:** feat/phase1.3-core-deps
