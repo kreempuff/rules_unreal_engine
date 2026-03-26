@@ -6,6 +6,7 @@ This replaces UnrealBuildTool's .Build.cs files with native Bazel rules.
 load("@rules_cc//cc:defs.bzl", "cc_library")
 load("//bzl:uht.bzl", "uht_codegen")
 load("//bzl:ue_module_info.bzl", "ue_module_info")
+load("//bzl:config.bzl", "UE_CONSTANT_DEFINES", "ue_build_config_defines", "ue_target_type_defines")
 
 def _generate_uht_outputs(name, hdrs):
     """Generate list of expected UHT output files.
@@ -290,39 +291,14 @@ def ue_module(
     })
 
     # UE build configuration defines (required by Core/Misc/Build.h)
-    # TODO: Make these configurable via Bazel config_setting
-    ue_build_defines = [
-        "__UNREAL__=1",                   # Standard UE define (used by third-party code)
-        "UE_BUILD_DEVELOPMENT=1",         # Development build (default)
-        "UE_BUILD_DEBUG=0",
-        "UE_BUILD_TEST=0",
-        "UE_BUILD_SHIPPING=0",
-        "WITH_EDITOR=0",                  # Game build, not editor
-        "WITH_EDITORONLY_DATA=0",         # No editor-only data in game builds
-        "WITH_VERSE_VM=0",               # Verse VM not included
-        "WITH_VERSE_COMPILER=0",         # Verse compiler not included
-        "WITH_ENGINE=1",                  # Compiling with engine
-        "WITH_UNREAL_DEVELOPER_TOOLS=0",
-        "WITH_PLUGIN_SUPPORT=1",
-        "WITH_SERVER_CODE=1",             # Include server code (for dedicated servers)
-        "IS_MONOLITHIC=0",                # Modular build
-        "IS_PROGRAM=0",                   # Not a standalone program
-        "UE_GAME=1",                      # Game build (not editor/server/client/program)
-        "TBBMALLOC_ENABLED=0",            # Disable Intel TBB malloc (platform-specific)
-        "USE_MALLOC_BINNED2=1",           # Use Binned2 allocator (UE default)
-        "USE_MALLOC_BINNED3=0",           # Binned3 experimental allocator OFF
-        "USE_STATS_WITHOUT_ENGINE=0",     # Stats system without full Engine (OFF for modular builds)
-        "FORCE_USE_STATS=0",              # Don't force stats in non-stat builds
-        'UBT_MODULE_MANIFEST=\\"Manifest.dat\\"',  # Module manifest filename
-        'UBT_MODULE_MANIFEST_DEBUGGAME=\\"Manifest-DebugGame.dat\\"',  # DebugGame manifest
-        'UE_APP_NAME=\\"UnrealGame\\"',   # Application name (default for games)
+    # UE build defines — configurable via --//bzl:target_type and --//bzl:build_config
+    # Constant defines (always the same) + configurable defines (select-based)
+    ue_build_defines = UE_CONSTANT_DEFINES + [
+        # Module API export macro (e.g., CORE_API=, ENGINE_API=)
+        # Empty for static library builds
+        # TODO: For DLL builds, use __declspec(dllexport/dllimport) on Windows
+        name.upper() + "_API=",
     ]
-
-    # Module API export macros (e.g., CORE_API, ENGINE_API)
-    # For static library builds, these are empty
-    # TODO: For DLL builds, use __declspec(dllexport/dllimport) on Windows
-    module_api_define = name.upper() + "_API="
-    ue_build_defines.append(module_api_define)
 
     # UE platform-specific defines (required by Core/HAL/Platform.h)
     ue_platform_defines = select({
@@ -351,8 +327,8 @@ def ue_module(
     all_copts = ue_default_copts + copts
 
     # Combine UE defines with user defines
-    # Order: UE build config → UE platform → user defines
-    all_defines = ue_build_defines + ue_platform_defines + defines
+    # Order: UE constants → target type (select) → build config (select) → platform → user defines
+    all_defines = ue_build_defines + ue_target_type_defines() + ue_build_config_defines() + ue_platform_defines + defines
 
     # Add module-specific local defines (private to this module only)
     # UE_MODULE_NAME: Used by IMPLEMENT_MODULE macro

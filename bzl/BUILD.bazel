@@ -3,3 +3,75 @@
 exports_files([
     "module.bzl",
 ])
+
+# === UE Build Configuration ===
+# Two axes: target_type (game/editor/server) and build_config (development/shipping/debug)
+#
+# Usage in .bazelrc:
+#   build --//bzl:target_type=game --//bzl:build_config=development
+#   build:editor --//bzl:target_type=editor
+#   build:shipping --//bzl:build_config=shipping
+#   build:server --//bzl:target_type=server
+
+load("@bazel_skylib//rules:common_settings.bzl", "string_flag")
+
+# Target type: what kind of binary are we building?
+string_flag(
+    name = "target_type",
+    build_setting_default = "game",
+    values = ["game", "editor", "server", "client", "program"],
+    visibility = ["//visibility:public"],
+)
+
+config_setting(
+    name = "target_type_game",
+    flag_values = {":target_type": "game"},
+)
+
+config_setting(
+    name = "target_type_editor",
+    flag_values = {":target_type": "editor"},
+)
+
+config_setting(
+    name = "target_type_server",
+    flag_values = {":target_type": "server"},
+)
+
+config_setting(
+    name = "target_type_client",
+    flag_values = {":target_type": "client"},
+)
+
+config_setting(
+    name = "target_type_program",
+    flag_values = {":target_type": "program"},
+)
+
+# Build configuration: optimization level and feature set
+string_flag(
+    name = "build_config",
+    build_setting_default = "development",
+    values = ["debug", "development", "test", "shipping"],
+    visibility = ["//visibility:public"],
+)
+
+config_setting(
+    name = "build_config_debug",
+    flag_values = {":build_config": "debug"},
+)
+
+config_setting(
+    name = "build_config_development",
+    flag_values = {":build_config": "development"},
+)
+
+config_setting(
+    name = "build_config_test",
+    flag_values = {":build_config": "test"},
+)
+
+config_setting(
+    name = "build_config_shipping",
+    flag_values = {":build_config": "shipping"},
+)
