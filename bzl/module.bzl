@@ -299,6 +299,8 @@ def ue_module(
         "UE_BUILD_SHIPPING=0",
         "WITH_EDITOR=0",                  # Game build, not editor
         "WITH_EDITORONLY_DATA=0",         # No editor-only data in game builds
+        "WITH_VERSE_VM=0",               # Verse VM not included
+        "WITH_VERSE_COMPILER=0",         # Verse compiler not included
         "WITH_ENGINE=1",                  # Compiling with engine
         "WITH_UNREAL_DEVELOPER_TOOLS=0",
         "WITH_PLUGIN_SUPPORT=1",

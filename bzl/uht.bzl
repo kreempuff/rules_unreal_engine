@@ -37,6 +37,11 @@ def _filter_headers_for_uht(hdrs):
         if "/Detail/" in path or "/Impl/" in path:
             continue
 
+        # Skip NoExportTypes.h — its .gen.cpp references types from Slate/Engine
+        # that aren't in CoreUObject's deps. The .generated.h is never included.
+        if hdr.basename == "NoExportTypes.h":
+            continue
+
         # Skip VerseVM internal headers (no reflection macros)
         # Epic's UBT scans headers and only includes ones with UCLASS/USTRUCT/UENUM
         # VVMValue.h, etc. don't have reflection macros, so Epic excludes them too

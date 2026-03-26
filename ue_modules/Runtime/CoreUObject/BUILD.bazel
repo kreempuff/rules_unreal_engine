@@ -12,8 +12,9 @@ ue_module(
     name = "CoreUObject",
     module_type = "Runtime",
 
-    # Files that depend on TargetPlatform module (not yet available)
+    # Files excluded: depend on modules not yet in dep graph
     exclude_srcs = [
+        # Depend on TargetPlatform (Developer module, cascades to Engine)
         "Private/Serialization/ArchiveUObjectFromStructuredArchive.cpp",
         "Private/Serialization/UnversionedPropertySerialization.cpp",
         "Private/UObject/SavePackage2.cpp",
@@ -21,6 +22,10 @@ ue_module(
         "Private/UObject/SavePackage/PackageHarvester.cpp",
         "Private/VerseVM/VVMVerseClass.cpp",
     ],
+
+    # UHT-generated files to exclude from compilation
+    # NoExportTypes.gen.cpp references types from Slate/ApplicationCore not in our deps
+    additional_hdrs = [],  # Placeholder: TODO proper UHT gen exclusion
 
     # From CoreUObject.Build.cs: PublicDependencyModuleNames
     public_deps = [
