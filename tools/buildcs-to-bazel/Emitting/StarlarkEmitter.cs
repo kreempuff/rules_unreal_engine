@@ -69,8 +69,11 @@ public class StarlarkEmitter
             EmitStringParam(sb, "module_type", module.ModuleType);
 
         // Dependencies — unconditional + platform-conditional select()
+        // Deduplicate private_deps against public_deps (public already implies link + headers)
+        var dedupedPrivateDeps = module.PrivateDeps.Where(d => !module.PublicDeps.Contains(d)).ToList();
+
         EmitDepListWithSelect(sb, "public_deps", module.PublicDeps, module.ConditionalBlocks, b => b.PublicDeps, suffix: null);
-        EmitDepListWithSelect(sb, "private_deps", module.PrivateDeps, module.ConditionalBlocks, b => b.PrivateDeps, suffix: null);
+        EmitDepListWithSelect(sb, "private_deps", dedupedPrivateDeps, module.ConditionalBlocks, b => b.PrivateDeps, suffix: null);
 
         // public_header_deps: skip modules already in public_deps or private_deps (would create duplicates)
         var allDeps = new HashSet<string>(module.PublicDeps.Concat(module.PrivateDeps));
