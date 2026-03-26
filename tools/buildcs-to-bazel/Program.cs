@@ -127,7 +127,16 @@ class Program
             var outPath = Path.Combine(outputDir, relDir, "BUILD.bazel");
 
             Directory.CreateDirectory(Path.GetDirectoryName(outPath)!);
-            File.WriteAllText(outPath, starlark);
+            if (File.Exists(outPath))
+            {
+                // Multiple Build.cs in same directory — append target only (skip load/docstring)
+                var targetOnly = emitter.EmitTargetOnly(info);
+                File.AppendAllText(outPath, "\n" + targetOnly);
+            }
+            else
+            {
+                File.WriteAllText(outPath, starlark);
+            }
             generated++;
 
             if (info.Warnings.Count > 0)

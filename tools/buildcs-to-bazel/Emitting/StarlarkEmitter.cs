@@ -48,6 +48,18 @@ public class StarlarkEmitter
         return sb.ToString();
     }
 
+    /// <summary>Emit just the target block (no load statement or docstring) for appending to an existing BUILD file.</summary>
+    public string EmitTargetOnly(ModuleInfo module)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"# Also from: {GetRelativeBuildCsPath(module.FilePath)}");
+        if (module.IsExternal)
+            EmitThirdPartyModule(sb, module);
+        else
+            EmitUeModule(sb, module);
+        return sb.ToString();
+    }
+
     private void EmitUeModule(StringBuilder sb, ModuleInfo module)
     {
         sb.AppendLine("ue_module(");
