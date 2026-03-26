@@ -421,7 +421,8 @@ def ue_module(
     cc_library(
         name = name + "_headers",
         hdrs = source_hdrs,
-        deps = public_header_deps,
+        # No deps — prevents circular dependency cycles (e.g., Engine ↔ ImageWrapper)
+        # Include paths propagate through the full target's deps instead
         includes = includes,
         defines = all_defines,
         visibility = visibility,
@@ -432,7 +433,6 @@ def ue_module(
         cc_library(
             name = name + "_uht_headers",
             hdrs = hdrs,  # source_hdrs + UHT outputs
-            deps = public_header_deps,
             includes = includes,
             defines = all_defines,
             visibility = visibility,
