@@ -32,8 +32,9 @@ def _filter_headers_for_uht(hdrs):
         if path.endswith(".inl"):
             continue
 
-        # Skip Detail/, Impl/, Private/ subdirectories
-        if "/Detail/" in path or "/Impl/" in path or "/Private/" in path:
+        # Skip Detail/ and Impl/ subdirectories (implementation details, never have macros)
+        # Note: Private/ headers CAN have reflection macros (e.g., CoreUObject/Private/UObject/PropertyHelper.h)
+        if "/Detail/" in path or "/Impl/" in path:
             continue
 
         # Skip VerseVM internal headers (no reflection macros)

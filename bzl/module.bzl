@@ -269,6 +269,7 @@ def ue_module(
             "-fno-exceptions",             # C++ exceptions OFF
             "-fno-rtti",                   # RTTI OFF
             "-Wall",                       # Enable all warnings
+            "-Wno-missing-template-arg-list-after-template-kw",  # Clang 18+ ThirdParty compat
             # Note: Objective-C exceptions NOT disabled - Mac code uses @try/@catch
         ],
         "@platforms//os:ios": [
@@ -297,6 +298,7 @@ def ue_module(
         "UE_BUILD_TEST=0",
         "UE_BUILD_SHIPPING=0",
         "WITH_EDITOR=0",                  # Game build, not editor
+        "WITH_EDITORONLY_DATA=0",         # No editor-only data in game builds
         "WITH_ENGINE=1",                  # Compiling with engine
         "WITH_UNREAL_DEVELOPER_TOOLS=0",
         "WITH_PLUGIN_SUPPORT=1",

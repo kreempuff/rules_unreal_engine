@@ -12,6 +12,16 @@ ue_module(
     name = "CoreUObject",
     module_type = "Runtime",
 
+    # Files that depend on TargetPlatform module (not yet available)
+    exclude_srcs = [
+        "Private/Serialization/ArchiveUObjectFromStructuredArchive.cpp",
+        "Private/Serialization/UnversionedPropertySerialization.cpp",
+        "Private/UObject/SavePackage2.cpp",
+        "Private/UObject/SavePackage/SavePackageUtilities.cpp",
+        "Private/UObject/SavePackage/PackageHarvester.cpp",
+        "Private/VerseVM/VVMVerseClass.cpp",
+    ],
+
     # From CoreUObject.Build.cs: PublicDependencyModuleNames
     public_deps = [
         "//UnrealEngine/Engine/Source/Runtime/Core",
@@ -24,9 +34,12 @@ ue_module(
         "//UnrealEngine/Engine/Source/Runtime/AutoRTFM",
         "//UnrealEngine/Engine/Source/Runtime/Projects",
         "//UnrealEngine/Engine/Source/Runtime/Json",
-        # DerivedDataCache - editor-only, skip for now
-        # ApplicationCore - optional, skip for now
     ],
+
+    # TODO: TargetPlatform headers needed but cascade to Engine module
+    # Excluded ArchiveUObjectFromStructuredArchive.cpp which needs it
+
+    local_defines = ["UE_DEFINE_LEGACY_MATH_CONSTANT_MACRO_NAMES=0"],
 
     visibility = ["//visibility:public"],
 )

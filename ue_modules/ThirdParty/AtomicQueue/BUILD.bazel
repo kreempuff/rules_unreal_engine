@@ -15,7 +15,6 @@ ue_module(
     hdrs = ["AtomicQueue.h"],
     module_type = "ThirdParty",
 
-    # Make header accessible via <AtomicQueue.h> (system include)
     public_includes = ["."],
 
     # No dependencies - standalone header-only library
