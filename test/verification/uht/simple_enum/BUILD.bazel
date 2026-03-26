@@ -14,5 +14,5 @@ ue_module(
         "@unreal_engine_source//UnrealEngine/Engine/Source/Runtime/AutoRTFM:AutoRTFM_headers",
         "@unreal_engine_source//UnrealEngine/Engine/Source/Runtime/CoreUObject:CoreUObject_uht_headers",
     ],
-    # UHT enabled by default, uses @unreal_engine_source from MODULE.bazel
+    visibility = ["//visibility:public"],
 )

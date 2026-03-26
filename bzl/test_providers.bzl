@@ -66,7 +66,7 @@ def _verify_provider_impl(ctx):
         ),
     ]
 
-verify_ue_module_info = rule(
+verify_ue_module_info_test = rule(
     implementation = _verify_provider_impl,
     test = True,
     attrs = {
