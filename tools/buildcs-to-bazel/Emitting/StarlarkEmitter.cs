@@ -227,10 +227,7 @@ public class StarlarkEmitter
                 else
                     resolved.Add(path);
             }
-            else
-            {
-                resolved.Add($"# UNRESOLVED: {dep}");
-            }
+            // Skip unresolved deps — they'd be invalid Bazel labels
         }
         resolved.Sort();
         return resolved;

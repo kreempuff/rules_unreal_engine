@@ -447,18 +447,21 @@ def ue_module(
         )
 
     # UeModuleInfo provider — carries transitive module metadata
-    ue_module_info(
-        name = name + "_info",
-        module_name = name,
-        module_type = module_type,
-        source_hdrs = source_hdrs,
-        uht_target = (":" + name + "_uht") if _enable_uht else None,
-        includes = includes,
-        defines = all_defines,
-        public_deps = [d + "_info" for d in public_deps if not d.startswith("@") and not d.endswith("_headers")],
-        public_header_deps = [d + "_info" for d in public_header_deps if not d.startswith("@") and not d.endswith("_headers")],
-        visibility = visibility,
-    )
+    # Only create _info targets when deps are plain lists (not select())
+    # select()-based deps can't be iterated at loading time
+    if type(public_deps) == "list" and type(public_header_deps) == "list":
+        ue_module_info(
+            name = name + "_info",
+            module_name = name,
+            module_type = module_type,
+            source_hdrs = source_hdrs,
+            uht_target = (":" + name + "_uht") if _enable_uht else None,
+            includes = includes,
+            defines = all_defines,
+            public_deps = [d + "_info" for d in public_deps if not d.startswith("@") and not d.endswith("_headers")],
+            public_header_deps = [d + "_info" for d in public_header_deps if not d.startswith("@") and not d.endswith("_headers")],
+            visibility = visibility,
+        )
 
     # Create the main cc_library (C++ files only, C files in separate library)
     cc_library(
