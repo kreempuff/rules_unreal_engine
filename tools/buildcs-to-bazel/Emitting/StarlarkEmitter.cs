@@ -115,6 +115,14 @@ public class StarlarkEmitter
         if (unconditional.Count == 0 && conditionalByPlatform.Count == 0)
             return;
 
+        // Deduplicate: remove conditional deps that already appear unconditionally
+        var unconditionalSet = new HashSet<string>(unconditional);
+        foreach (var (_, list) in conditionalByPlatform)
+            list.RemoveAll(d => unconditionalSet.Contains(d));
+        // Remove empty platforms after dedup
+        foreach (var key in conditionalByPlatform.Where(kv => kv.Value.Count == 0).Select(kv => kv.Key).ToList())
+            conditionalByPlatform.Remove(key);
+
         // Resolve module names to labels
         var resolvedUnconditional = ResolveDeps(unconditional, suffix);
         var resolvedConditional = conditionalByPlatform.ToDictionary(
@@ -176,6 +184,13 @@ public class StarlarkEmitter
                 list.AddRange(values);
             }
         }
+
+        // Deduplicate conditional values against unconditional
+        var unconditionalSet = new HashSet<string>(unconditional);
+        foreach (var (_, list) in conditionalByPlatform)
+            list.RemoveAll(d => unconditionalSet.Contains(d));
+        foreach (var key in conditionalByPlatform.Where(kv => kv.Value.Count == 0).Select(kv => kv.Key).ToList())
+            conditionalByPlatform.Remove(key);
 
         if (unconditional.Count == 0 && conditionalByPlatform.Count == 0)
             return;
