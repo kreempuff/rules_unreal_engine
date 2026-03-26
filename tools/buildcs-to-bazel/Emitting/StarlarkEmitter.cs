@@ -236,7 +236,7 @@ public class StarlarkEmitter
     private List<string> ResolveDeps(List<string> deps, string? suffix)
     {
         var resolved = new List<string>();
-        foreach (var dep in deps)
+        foreach (var dep in deps.Distinct())
         {
             var path = _resolver.Resolve(dep);
             if (path != null)
