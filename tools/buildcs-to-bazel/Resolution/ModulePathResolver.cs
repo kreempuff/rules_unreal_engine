@@ -2,8 +2,9 @@ namespace BuildCsToBazel.Resolution;
 
 public class ModulePathResolver
 {
-    private readonly Dictionary<string, string> _moduleToPath = new();
-    private readonly Dictionary<string, string> _moduleToType = new();
+    private readonly Dictionary<string, string> _moduleToPath = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, string> _moduleToType = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, string> _moduleToCanonicalName = new(); // lowercase key → original case
 
     public ModulePathResolver(string engineSourcePath)
     {
@@ -37,6 +38,7 @@ public class ModulePathResolver
 
             _moduleToPath[moduleName] = bazelPath;
             _moduleToType[moduleName] = moduleType;
+            _moduleToCanonicalName[moduleName.ToLowerInvariant()] = moduleName;
         }
     }
 
@@ -52,7 +54,21 @@ public class ModulePathResolver
 
     public string? Resolve(string moduleName)
     {
-        return _moduleToPath.GetValueOrDefault(moduleName);
+        if (!_moduleToPath.TryGetValue(moduleName, out var path))
+            return null;
+
+        // The canonical module name comes from the Build.cs filename, not the caller.
+        // When the caller uses a different case (e.g., "ICMP" vs "Icmp"),
+        // we need to return the label with the correct target name.
+        var canonicalName = _moduleToCanonicalName.GetValueOrDefault(moduleName.ToLowerInvariant(), moduleName);
+        var dirName = path.Split('/').Last();
+
+        // If directory name matches canonical name (common case), just return the path
+        if (dirName == canonicalName)
+            return path;
+
+        // Otherwise, use explicit target name: //path:CanonicalName
+        return path + ":" + canonicalName;
     }
 
     public string? GetModuleType(string moduleName)
