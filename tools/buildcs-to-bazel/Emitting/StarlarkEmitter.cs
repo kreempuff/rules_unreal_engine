@@ -233,10 +233,10 @@ public class StarlarkEmitter
         sb.AppendLine("    }),");
     }
 
-    private List<string> ResolveDeps(List<string> deps, string? suffix)
+    private List<string> ResolveDeps(IEnumerable<string> deps, string? suffix)
     {
-        var resolved = new List<string>();
-        foreach (var dep in deps.Distinct())
+        var resolved = new HashSet<string>();
+        foreach (var dep in deps)
         {
             var path = _resolver.Resolve(dep);
             if (path != null)
@@ -248,8 +248,7 @@ public class StarlarkEmitter
             }
             // Skip unresolved deps — they'd be invalid Bazel labels
         }
-        resolved.Sort();
-        return resolved;
+        return resolved.OrderBy(r => r).ToList();
     }
 
     private void EmitThirdPartyModule(StringBuilder sb, ModuleInfo module)
