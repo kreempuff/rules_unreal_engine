@@ -5,6 +5,7 @@ This replaces UnrealBuildTool's .Build.cs files with native Bazel rules.
 
 load("@rules_cc//cc:defs.bzl", "cc_library")
 load("//bzl:uht.bzl", "uht_codegen")
+load("//bzl:ue_module_info.bzl", "ue_module_info")
 
 def _generate_uht_outputs(name, hdrs):
     """Generate list of expected UHT output files.
@@ -431,16 +432,12 @@ def ue_module(
         "ue_module_type:" + module_type,
     ]
 
-    # Three header targets, each with increasing scope:
+    # Header targets for dependency resolution:
     #
-    # {name}_headers     — source headers only, no UHT, no transitive deps
-    #                      Use to break circular dependencies (e.g., Core ↔ TraceLog)
-    #
-    # {name}_uht_headers — source headers + UHT-generated .generated.h files
-    #                      Use when a downstream module needs generated headers
-    #                      from this dep (e.g., TestModule needs CoreUObject's MetaData.generated.h)
-    #
-    # {name}             — full compilation target (headers + sources + all deps)
+    # {name}_headers     — source headers only, no UHT (breaks circular deps)
+    # {name}_uht_headers — source + UHT-generated headers (for modules needing .generated.h)
+    # {name}_info        — UeModuleInfo provider (carries transitive module metadata)
+    # {name}             — full compilation target
 
     cc_library(
         name = name + "_headers",
@@ -463,12 +460,25 @@ def ue_module(
             tags = tags + ["uht_headers"],
         )
     else:
-        # No UHT — _uht_headers is identical to _headers
         native.alias(
             name = name + "_uht_headers",
             actual = ":" + name + "_headers",
             visibility = visibility,
         )
+
+    # UeModuleInfo provider — carries transitive module metadata
+    ue_module_info(
+        name = name + "_info",
+        module_name = name,
+        module_type = module_type,
+        source_hdrs = source_hdrs,
+        uht_target = (":" + name + "_uht") if _enable_uht else None,
+        includes = includes,
+        defines = all_defines,
+        public_deps = [d + "_info" for d in public_deps if not d.startswith("@") and not d.endswith("_headers")],
+        public_header_deps = [d + "_info" for d in public_header_deps if not d.startswith("@") and not d.endswith("_headers")],
+        visibility = visibility,
+    )
 
     # Create the main cc_library (C++ files only, C files in separate library)
     cc_library(

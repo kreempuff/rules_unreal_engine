@@ -1,0 +1,24 @@
+"""Tests for UeModuleInfo provider propagation."""
+
+load("@rules_unreal_engine//bzl:test_providers.bzl", "verify_ue_module_info")
+
+# Test: TestModule's _info target has correct metadata
+verify_ue_module_info(
+    name = "test_module_info",
+    target = "//test/verification/uht/simple_enum:TestModule_info",
+    expected_name = "TestModule",
+    expected_module_type = "Runtime",
+    min_source_hdrs = 1,
+    expect_uht_hdrs = True,
+)
+
+# Test: CoreUObject's _info target has transitive headers from Core
+verify_ue_module_info(
+    name = "core_uobject_info",
+    target = "@unreal_engine_source//UnrealEngine/Engine/Source/Runtime/CoreUObject:CoreUObject_info",
+    expected_name = "CoreUObject",
+    expected_module_type = "Runtime",
+    min_source_hdrs = 10,
+    expect_uht_hdrs = True,
+    min_transitive_hdrs = 100,  # Should have Core's headers transitively
+)

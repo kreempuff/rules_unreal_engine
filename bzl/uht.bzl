@@ -4,6 +4,8 @@ This module provides a custom rule for running Epic's UnrealHeaderTool
 to generate reflection code from UCLASS/USTRUCT/UENUM macros.
 """
 
+load("//bzl:providers.bzl", "UeUhtInfo")
+
 
 def _filter_headers_for_uht(hdrs):
     """Filter headers to only those UHT should process.
@@ -208,7 +210,17 @@ def _uht_codegen_impl(ctx):
         execution_requirements = {"no-sandbox": "1"},  # UBT writes to Engine/Saved/
     )
 
-    return [DefaultInfo(files = depset(outputs))]
+    generated_hdrs = [f for f in outputs if f.path.endswith(".generated.h")]
+    generated_srcs = [f for f in outputs if f.path.endswith(".cpp")]
+
+    return [
+        DefaultInfo(files = depset(outputs)),
+        UeUhtInfo(
+            generated_hdrs = depset(generated_hdrs),
+            generated_srcs = depset(generated_srcs),
+            include_dir = uht_output_path,
+        ),
+    ]
 
 uht_codegen = rule(
     implementation = _uht_codegen_impl,
