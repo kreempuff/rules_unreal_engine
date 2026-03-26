@@ -21,6 +21,8 @@ ue_module(
         "Private/UObject/SavePackage/SavePackageUtilities.cpp",
         "Private/UObject/SavePackage/PackageHarvester.cpp",
         "Private/VerseVM/VVMVerseClass.cpp",
+        # NoExportTypes.cpp references ApplicationCore (ICursor.h)
+        "Private/UObject/NoExportTypes.cpp",
     ],
 
     # UHT-generated files to exclude from compilation
