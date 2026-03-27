@@ -181,17 +181,21 @@ UHT codegen is proven working. TestModule generates 3 files correctly. The build
 - [x] Generated 700 BUILD files (81%) — verified against hand-written Json, ImageCore, Projects, Networking
 - [x] Three commands: `scan` (complexity report), `generate` (emit BUILD files), `resolve` (module name→label map)
 
-### Current State
-**TestModule compiles successfully.** The full UHT pipeline works. Build.cs parser generates correct BUILD files for 700/870 modules.
+### Completed (2026-03-26 sessions)
+- [x] Integrated parser into repo rule — 835 BUILD files auto-generated
+- [x] Phase 2: platform conditionals — 82% coverage
+- [x] Custom Bazel providers: UeModuleInfo + UeUhtInfo (test passing)
+- [x] Configurable build defines: `--//bzl:target_type=game|editor|server`, `--//bzl:build_config=development|shipping`
+- [x] Emitter fixes: select() compat, dep dedup (within/across/conditional), case-insensitive resolution, multi-Build.cs-per-directory, cycle-free _headers
+- [x] **Json builds** (`libJson.a`), **Projects builds** (`libProjects.a`)
+- [x] **Engine _headers resolves** (88 packages, 2272 targets)
 
-**Three-tier header targets:**
-- `{name}_headers` — source headers only, no UHT (breaks circular deps)
-- `{name}_uht_headers` — source + UHT-generated headers (for modules needing `.generated.h` from deps)
-- `{name}` — full target (compilation + linking)
+### Current State
+Engine headers resolve across the full transitive dep graph (835 modules). Full Engine compilation blocked by circular deps: `Engine ↔ UMG/Renderer/ImageWriteQueue`. UE has many circular module deps that UBT handles via monolithic linking.
 
 ## Next Steps
 
-1. **Integrate parser into repo rule** — invoke buildcs-to-bazel in `internal/repo/rule.bzl` after UBT compilation, before BUILD installation. Hand-written ue_modules/ always takes priority.
-2. **Phase 2: platform conditionals** — parse `if (Target.Platform == ...)` → `select()`. Covers the 253 conditional modules.
-3. **Design custom Bazel providers** — UeModuleInfo provider to replace three-tier target pattern. Informed by Build.cs property set from parser.
-4. **Replace UBT with minimal UHT shim** — invoke EpicGames.UHT.dll directly, bypass UBT.
+1. **Cycle detection in emitter** — two-pass: build dep graph, detect cycles, convert back-references to _headers
+2. **Replace UBT with minimal UHT shim** — invoke EpicGames.UHT.dll directly
+3. **Platform toolchains** — cross-compilation to Linux for dedicated server
+4. **Executable targets** — cc_binary for editor, game client, server
