@@ -1,0 +1,48 @@
+"""Test: circular module dependencies resolved via ue_cc_module + ue_binary.
+
+Module A depends on Module B's headers, and B depends on A's headers.
+This would be a cycle with cc_library, but ue_cc_module separates
+compilation (headers only) from linking (resolved at binary time).
+"""
+
+load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_unreal_engine//bzl:ue_cc_module.bzl", "ue_cc_module")
+load("@rules_unreal_engine//bzl:ue_binary.bzl", "ue_binary")
+
+# Header-only targets — no deps between them, no cycles possible
+cc_library(
+    name = "module_a_headers",
+    hdrs = ["module_a/a.h"],
+    strip_include_prefix = "module_a",
+)
+
+cc_library(
+    name = "module_b_headers",
+    hdrs = ["module_b/b.h"],
+    strip_include_prefix = "module_b",
+)
+
+# Compilation targets — deps on headers only (no cycles)
+ue_cc_module(
+    name = "module_a",
+    srcs = ["module_a/a.cpp"],
+    public_hdrs = ["module_a/a.h"],
+    includes = ["module_a"],
+    deps = [":module_a_headers", ":module_b_headers"],
+)
+
+ue_cc_module(
+    name = "module_b",
+    srcs = ["module_b/b.cpp"],
+    public_hdrs = ["module_b/b.h"],
+    includes = ["module_b"],
+    deps = [":module_b_headers", ":module_a_headers"],
+)
+
+# Binary — lists ALL modules that need to be linked
+# No cycles: binary is a terminal node
+ue_binary(
+    name = "circular_test",
+    srcs = ["main.cpp"],
+    deps = [":module_a", ":module_b"],
+)

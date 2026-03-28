@@ -1,24 +1,32 @@
 """Providers for Unreal Engine module information.
 
-These providers carry module metadata between ue_module rules,
-replacing the three-tier _headers/_uht_headers/full target pattern
-with native Bazel provider propagation.
+These providers separate compilation and linking concerns:
+- UeModuleInfo: headers, includes, defines for compilation
+- UeLinkInfo: .a files and link deps for linking (resolved at binary time)
+- UeUhtInfo: UHT code generation outputs
 """
 
 UeModuleInfo = provider(
-    doc = "Information about an Unreal Engine module for dependency resolution.",
+    doc = "Compilation info for a UE module. Carries headers and includes for dependents.",
     fields = {
         "name": "Module name (e.g., 'Core', 'CoreUObject')",
         "module_type": "Module type: Runtime, Developer, Editor, Program, ThirdParty",
-        "source_hdrs": "depset of source header files (no UHT outputs)",
-        "uht_hdrs": "depset of UHT-generated .generated.h files",
-        "uht_include_dir": "String path to UHT output directory (for -I flag)",
-        "includes": "depset of include path strings (Public, Internal, Private dirs)",
-        "defines": "depset of public preprocessor defines",
-        "transitive_source_hdrs": "depset of all transitive source headers",
-        "transitive_uht_hdrs": "depset of all transitive UHT-generated headers",
-        "transitive_includes": "depset of all transitive include paths",
-        "transitive_defines": "depset of all transitive public defines",
+        "compilation_context": "CompilationContext from cc_common.compile()",
+    },
+)
+
+UeLinkInfo = provider(
+    doc = """Link-time dependency info for a UE module.
+
+    Carries .o files and transitive link deps WITHOUT creating Bazel dep edges.
+    This is how we break circular deps: compilation deps are real Bazel deps
+    (to _headers targets), but link deps are just data flowing through providers.
+    The ue_binary rule collects all transitive UeLinkInfo and links everything together.
+    """,
+    fields = {
+        "object_files": "depset of .o files (or .a) produced by this module",
+        "linker_inputs": "depset of LinkerInput objects for cc_common.link()",
+        "transitive_linker_inputs": "depset of all transitive LinkerInput objects",
     },
 )
 
