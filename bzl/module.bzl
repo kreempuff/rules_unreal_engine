@@ -6,6 +6,7 @@ This replaces UnrealBuildTool's .Build.cs files with native Bazel rules.
 load("@rules_cc//cc:defs.bzl", "cc_library")
 load("//bzl:uht.bzl", "uht_codegen")
 load("//bzl:ue_module_info.bzl", "ue_module_info")
+load("//bzl:ue_cc_module.bzl", "ue_cc_module")
 load("//bzl:config.bzl", "UE_CONSTANT_DEFINES", "ue_build_config_defines", "ue_target_type_defines")
 
 def _generate_uht_outputs(name, hdrs):
@@ -44,7 +45,27 @@ def _generate_uht_outputs(name, hdrs):
 
     return outputs
 
-# Old genrule-based UHT implementation removed - now using uht_codegen custom rule (bzl/uht.bzl)
+def _to_headers_dep(dep):
+    """Convert a module dep label to its _headers target.
+
+    //path/to/Core          → //path/to/Core:Core_headers
+    //path/to/Core:Core     → //path/to/Core:Core_headers
+    :Core                   → :Core_headers
+    Already _headers suffix → unchanged
+    """
+    if "_headers" in dep or "_uht_headers" in dep:
+        return dep
+    if ":" in dep:
+        return dep + "_headers"
+    # //path/to/Module → //path/to/Module:Module_headers
+    module_name = dep.split("/")[-1]
+    return dep + ":" + module_name + "_headers"
+
+def _deps_to_headers(deps):
+    """Convert a list of deps to _headers variants. Passes through select() unchanged."""
+    if type(deps) != "list":
+        return deps  # select() — can't iterate, pass through
+    return [_to_headers_dep(d) for d in deps]
 
 def ue_module(
         name,
@@ -332,7 +353,7 @@ def ue_module(
 
     # Add module-specific local defines (private to this module only)
     # UE_MODULE_NAME: Used by IMPLEMENT_MODULE macro
-    module_local_defines = ['UE_MODULE_NAME=\\"' + name + '\\"']
+    module_local_defines = ['UE_MODULE_NAME="' + name + '"']
     all_local_defines = module_local_defines + local_defines
 
     # Build include paths
@@ -421,8 +442,9 @@ def ue_module(
     cc_library(
         name = name + "_headers",
         hdrs = source_hdrs,
-        # No deps — prevents circular dependency cycles (e.g., Engine ↔ ImageWrapper)
-        # Include paths propagate through the full target's deps instead
+        # No deps — Bazel enforces DAG even on header-only cc_library targets,
+        # and UE's module graph has cycles (e.g., Core ↔ ImageCore).
+        # All needed headers are collected in ue_cc_module's deps instead.
         includes = includes,
         defines = all_defines,
         visibility = visibility,
@@ -462,20 +484,28 @@ def ue_module(
             visibility = visibility,
         )
 
-    # Create the main cc_library (C++ files only, C files in separate library)
-    cc_library(
+    # Convert all module deps to _headers for compilation (breaks circular deps)
+    # Linking happens at ue_binary time, not here
+    header_deps = _deps_to_headers(public_deps) + _deps_to_headers(private_deps) + public_header_deps
+
+    # Add C library if present
+    if c_files:
+        header_deps = header_deps + [":" + c_lib_name]
+
+    # Create the main compilation target using ue_cc_module
+    # This compiles against headers only (no cycles) and provides UeLinkInfo for binary linking
+    ue_cc_module(
         name = name,
-        srcs = cpp_files,  # Only C++ files (C files in _c library)
-        hdrs = hdrs,
-        deps = deps,  # Includes _c library if C files exist
+        srcs = cpp_files,
+        public_hdrs = [h for h in (source_hdrs if type(source_hdrs) == "list" else [])],
+        private_hdrs = [],
+        deps = header_deps,
         includes = includes,
-        defines = all_defines,
-        local_defines = all_local_defines,
-        copts = all_copts,  # C++ flags
-        linkopts = processed_linkopts,
+        defines = all_defines + all_local_defines,
+        copts = all_copts,
+        module_name = name,
+        module_type = module_type,
         visibility = visibility,
-        tags = tags,
-        **kwargs
     )
 
 # Module type constants for documentation

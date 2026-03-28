@@ -28,13 +28,21 @@ def _ue_cc_module_impl(ctx):
         if CcInfo in dep:
             dep_compilation_contexts.append(dep[CcInfo].compilation_context)
 
+    # Separate source files from headers (UHT genrule produces both in one output group)
+    src_extensions = [".cpp", ".c", ".mm", ".cc"]
+    hdr_extensions = [".h", ".hpp", ".inl"]
+    actual_srcs = [f for f in ctx.files.srcs if any([f.path.endswith(ext) for ext in src_extensions])]
+    extra_hdrs = [f for f in ctx.files.srcs if any([f.path.endswith(ext) for ext in hdr_extensions])]
+
+    all_public_hdrs = ctx.files.public_hdrs + extra_hdrs
+
     # Compile sources
     compilation_context, compilation_outputs = cc_common.compile(
         actions = ctx.actions,
         feature_configuration = feature_configuration,
         cc_toolchain = cc_toolchain,
-        srcs = ctx.files.srcs,
-        public_hdrs = ctx.files.public_hdrs,
+        srcs = actual_srcs,
+        public_hdrs = all_public_hdrs,
         private_hdrs = ctx.files.private_hdrs,
         includes = ctx.attr.includes,
         defines = ctx.attr.defines,

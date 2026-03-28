@@ -102,7 +102,7 @@ UE_CONSTANT_DEFINES = [
     "USE_MALLOC_BINNED3=0",
     "USE_STATS_WITHOUT_ENGINE=0",
     "FORCE_USE_STATS=0",
-    'UBT_MODULE_MANIFEST=\\"Manifest.dat\\"',
-    'UBT_MODULE_MANIFEST_DEBUGGAME=\\"Manifest-DebugGame.dat\\"',
-    'UE_APP_NAME=\\"UnrealGame\\"',
+    'UBT_MODULE_MANIFEST="Manifest.dat"',
+    'UBT_MODULE_MANIFEST_DEBUGGAME="Manifest-DebugGame.dat"',
+    'UE_APP_NAME="UnrealGame"',
 ]
