@@ -1,3 +1,4 @@
+using BuildCsToBazel.Models;
 using BuildCsToBazel.Parsing;
 using BuildCsToBazel.Emitting;
 using BuildCsToBazel.Resolution;
@@ -102,17 +103,70 @@ class Program
         var parser = new BuildCsParser();
         var emitter = new StarlarkEmitter(resolver);
 
-        int generated = 0, skipped = 0, failed = 0;
-
+        // Phase 1: Parse all modules
+        var allModules = new Dictionary<string, (ModuleInfo info, string file)>();
         foreach (var file in Directory.EnumerateFiles(ueSource, "*.Build.cs", SearchOption.AllDirectories))
         {
             var moduleName = Path.GetFileNameWithoutExtension(file).Replace(".Build", "");
-
-            if (singleModule != null && moduleName != singleModule)
-                continue;
-
             var moduleType = InferModuleType(file);
             var info = parser.Parse(file, moduleType);
+            allModules[moduleName] = (info, file);
+        }
+
+        // Phase 2: Compute transitive header deps for each module
+        // Build adjacency list: module → all modules it needs headers from
+        var graph = new Dictionary<string, HashSet<string>>();
+        foreach (var (modName, (info, _)) in allModules)
+        {
+            var deps = new HashSet<string>();
+            deps.UnionWith(info.PublicDeps);
+            deps.UnionWith(info.PrivateDeps);
+            deps.UnionWith(info.PublicHeaderDeps);
+            // Also include conditional deps
+            foreach (var block in info.ConditionalBlocks)
+            {
+                deps.UnionWith(block.PublicDeps);
+                deps.UnionWith(block.PrivateDeps);
+                deps.UnionWith(block.PublicHeaderDeps);
+            }
+            graph[modName] = deps;
+        }
+
+        // BFS to compute transitive closure for each module
+        var transitiveCache = new Dictionary<string, HashSet<string>>();
+        HashSet<string> GetTransitiveDeps(string modName)
+        {
+            if (transitiveCache.TryGetValue(modName, out var cached))
+                return cached;
+
+            var result = new HashSet<string>();
+            var queue = new Queue<string>();
+            if (graph.TryGetValue(modName, out var directDeps))
+            {
+                foreach (var d in directDeps) queue.Enqueue(d);
+            }
+
+            while (queue.Count > 0)
+            {
+                var dep = queue.Dequeue();
+                if (!result.Add(dep)) continue; // Already visited
+                if (graph.TryGetValue(dep, out var depDeps))
+                {
+                    foreach (var d in depDeps) queue.Enqueue(d);
+                }
+            }
+
+            transitiveCache[modName] = result;
+            return result;
+        }
+
+        // Phase 3: Emit BUILD files with transitive header deps
+        int generated = 0, skipped = 0, failed = 0;
+
+        foreach (var (moduleName, (info, file)) in allModules)
+        {
+            if (singleModule != null && moduleName != singleModule)
+                continue;
 
             if (skipComplex && info.NeedsManualReview)
             {
@@ -120,16 +174,16 @@ class Program
                 continue;
             }
 
-            var starlark = emitter.Emit(info);
+            // Compute transitive header deps for this module
+            var transitiveDeps = GetTransitiveDeps(moduleName);
+            var starlark = emitter.Emit(info, transitiveDeps);
 
-            // Determine output path: mirror the Engine/Source/ structure
             var relDir = GetRelativeModuleDir(file, ueSource);
             var outPath = Path.Combine(outputDir, relDir, "BUILD.bazel");
 
             Directory.CreateDirectory(Path.GetDirectoryName(outPath)!);
             if (File.Exists(outPath))
             {
-                // Multiple Build.cs in same directory — append target only (skip load/docstring)
                 var targetOnly = emitter.EmitTargetOnly(info);
                 File.AppendAllText(outPath, "\n" + targetOnly);
             }

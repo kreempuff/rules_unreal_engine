@@ -13,7 +13,7 @@ public class StarlarkEmitter
         _resolver = resolver;
     }
 
-    public string Emit(ModuleInfo module)
+    public string Emit(ModuleInfo module, HashSet<string>? transitiveDeps = null)
     {
         var sb = new StringBuilder();
 
@@ -42,7 +42,7 @@ public class StarlarkEmitter
         }
         else
         {
-            EmitUeModule(sb, module);
+            EmitUeModule(sb, module, transitiveDeps);
         }
 
         return sb.ToString();
@@ -60,7 +60,7 @@ public class StarlarkEmitter
         return sb.ToString();
     }
 
-    private void EmitUeModule(StringBuilder sb, ModuleInfo module)
+    private void EmitUeModule(StringBuilder sb, ModuleInfo module, HashSet<string>? transitiveDeps = null)
     {
         sb.AppendLine("ue_module(");
         EmitStringParam(sb, "name", module.Name);
@@ -79,6 +79,18 @@ public class StarlarkEmitter
         var allDeps = new HashSet<string>(module.PublicDeps.Concat(module.PrivateDeps));
         var dedupedHeaderDeps = module.PublicHeaderDeps.Where(d => !allDeps.Contains(d)).ToList();
         EmitDepListWithSelect(sb, "public_header_deps", dedupedHeaderDeps, module.ConditionalBlocks, b => b.PublicHeaderDeps, suffix: ":${name}_headers");
+
+        // Transitive header deps — all modules this module transitively needs headers from
+        // Computed by the emitter from the full dependency graph (avoids needing dep edges on _headers)
+        if (transitiveDeps != null && transitiveDeps.Count > 0)
+        {
+            // Exclude direct deps (already in public_deps/private_deps/public_header_deps)
+            var directDeps = new HashSet<string>(module.PublicDeps.Concat(module.PrivateDeps).Concat(module.PublicHeaderDeps));
+            var transitiveOnly = transitiveDeps.Where(d => !directDeps.Contains(d)).ToList();
+            var resolved = ResolveDeps(transitiveOnly, ":${name}_headers");
+            if (resolved.Count > 0)
+                EmitRawList(sb, "transitive_header_deps", resolved);
+        }
 
         // Defines
         EmitStringListWithSelect(sb, "defines", module.Defines, module.ConditionalBlocks, b => b.Defines);

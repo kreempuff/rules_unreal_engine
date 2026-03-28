@@ -77,6 +77,7 @@ def ue_module(
         public_deps = [],
         private_deps = [],
         public_header_deps = [],
+        transitive_header_deps = [],
         public_includes = [],
         private_includes = [],
         system_includes = [],
@@ -486,7 +487,8 @@ def ue_module(
 
     # Convert all module deps to _headers for compilation (breaks circular deps)
     # Linking happens at ue_binary time, not here
-    header_deps = _deps_to_headers(public_deps) + _deps_to_headers(private_deps) + public_header_deps
+    # Direct deps + transitive header deps = flat list of ALL headers this module needs
+    header_deps = _deps_to_headers(public_deps) + _deps_to_headers(private_deps) + public_header_deps + transitive_header_deps
 
     # Add C library if present
     if c_files:
