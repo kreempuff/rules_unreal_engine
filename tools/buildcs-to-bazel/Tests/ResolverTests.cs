@@ -71,6 +71,23 @@ public class ResolverTests
     }
 
     [Fact]
+    public void Resolve_AlwaysUsesCanonicalCase()
+    {
+        var resolver = CreateResolver();
+
+        // NVaftermath.Build.cs → canonical name "NVaftermath"
+        // If someone references it as "NVAftermath", the resolved label should still use "NVaftermath"
+        var result = resolver.Resolve("NVAftermath");
+
+        if (result != null)
+        {
+            // Target name should be lowercase 'a' from the filename
+            Assert.Contains(":NVaftermath", result);
+            Assert.DoesNotContain(":NVAftermath", result);
+        }
+    }
+
+    [Fact]
     public void GetAll_ReturnsHundredsOfModules()
     {
         var resolver = CreateResolver();

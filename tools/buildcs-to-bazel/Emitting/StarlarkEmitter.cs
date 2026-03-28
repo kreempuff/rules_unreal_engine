@@ -293,7 +293,7 @@ public class StarlarkEmitter
         EmitStringParam(sb, "name", module.Name);
 
         // ThirdParty modules: emit hdrs glob and includes
-        EmitStringParam(sb, "hdrs", "glob([\"**/*.h\"])", quoted: false);
+        EmitStringParam(sb, "hdrs", "glob([\"**/*.h\"], allow_empty = True)", quoted: false);
         EmitStringList(sb, "includes", ["."]);
 
         // Dependencies
@@ -307,6 +307,11 @@ public class StarlarkEmitter
 
         EmitStringParam(sb, "visibility", "[\"//visibility:public\"]", quoted: false);
         sb.AppendLine(")");
+
+        // Create aliases so _headers and _uht_headers references resolve for ThirdParty modules
+        sb.AppendLine();
+        sb.AppendLine($"alias(name = \"{module.Name}_headers\", actual = \":{module.Name}\", visibility = [\"//visibility:public\"])");
+        sb.AppendLine($"alias(name = \"{module.Name}_uht_headers\", actual = \":{module.Name}\", visibility = [\"//visibility:public\"])");
     }
 
     private void EmitDepList(StringBuilder sb, string paramName, List<string> deps, string? suffix)

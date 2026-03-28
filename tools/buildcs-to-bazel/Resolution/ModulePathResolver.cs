@@ -57,17 +57,10 @@ public class ModulePathResolver
         if (!_moduleToPath.TryGetValue(moduleName, out var path))
             return null;
 
-        // The canonical module name comes from the Build.cs filename, not the caller.
-        // When the caller uses a different case (e.g., "ICMP" vs "Icmp"),
-        // we need to return the label with the correct target name.
+        // Always return explicit target: //path:CanonicalName
+        // This ensures the target name uses the canonical case from the filename,
+        // not the caller's case (e.g., "NVAftermath" vs "NVaftermath")
         var canonicalName = _moduleToCanonicalName.GetValueOrDefault(moduleName.ToLowerInvariant(), moduleName);
-        var dirName = path.Split('/').Last();
-
-        // If directory name matches canonical name (common case), just return the path
-        if (dirName == canonicalName)
-            return path;
-
-        // Otherwise, use explicit target name: //path:CanonicalName
         return path + ":" + canonicalName;
     }
 
