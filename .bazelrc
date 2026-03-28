@@ -11,3 +11,4 @@ build:cache --experimental_remote_downloader=grpc://localhost:9092
 
 # Import CI-generated config (contains UE clone path)
 try-import %workspace%/.bazelrc.ci
+try-import %workspace%/.bazelrc.local

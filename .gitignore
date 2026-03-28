@@ -38,3 +38,4 @@ test/uht_test/*.deps
 
 # Test UE clone (persistent for E2E tests)
 .test_ue/UnrealEngine/
+.bazelrc.local

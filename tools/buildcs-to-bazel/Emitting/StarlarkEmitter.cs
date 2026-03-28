@@ -269,9 +269,18 @@ public class StarlarkEmitter
             if (path != null)
             {
                 if (suffix != null)
-                    resolved.Add(path + suffix.Replace("${name}", dep));
+                {
+                    // If path has explicit target (e.g., //path:Target), append suffix to target name
+                    // Otherwise add :TargetName + suffix
+                    if (path.Contains(':'))
+                        resolved.Add(path + suffix.Replace(":${name}", "").Replace("${name}", dep));
+                    else
+                        resolved.Add(path + suffix.Replace("${name}", dep));
+                }
                 else
+                {
                     resolved.Add(path);
+                }
             }
             // Skip unresolved deps — they'd be invalid Bazel labels
         }
