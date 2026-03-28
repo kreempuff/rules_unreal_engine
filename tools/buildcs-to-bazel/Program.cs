@@ -107,7 +107,7 @@ class Program
         var allModules = new Dictionary<string, (ModuleInfo info, string file)>();
         foreach (var file in Directory.EnumerateFiles(ueSource, "*.Build.cs", SearchOption.AllDirectories))
         {
-            var moduleName = Path.GetFileNameWithoutExtension(file).Replace(".Build", "");
+            var moduleName = Path.GetFileNameWithoutExtension(file).Replace(".Build", "", StringComparison.OrdinalIgnoreCase);
             var moduleType = InferModuleType(file);
             var info = parser.Parse(file, moduleType);
             allModules[moduleName] = (info, file);

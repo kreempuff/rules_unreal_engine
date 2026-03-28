@@ -9,10 +9,15 @@ ue_module(
     hdrs = ["Public/TestEnum.h"],
     srcs = ["Private/TestModule.cpp"],
     public_deps = [
-        "@unreal_engine_source//UnrealEngine/Engine/Source/Runtime/Core:Core_headers",
-        "@unreal_engine_source//UnrealEngine/Engine/Source/Runtime/TraceLog:TraceLog_headers",
-        "@unreal_engine_source//UnrealEngine/Engine/Source/Runtime/AutoRTFM:AutoRTFM_headers",
-        "@unreal_engine_source//UnrealEngine/Engine/Source/Runtime/CoreUObject:CoreUObject_uht_headers",
+        "@unreal_engine_source//UnrealEngine/Engine/Source/Runtime/Core",
+        "@unreal_engine_source//UnrealEngine/Engine/Source/Runtime/TraceLog",
+        "@unreal_engine_source//UnrealEngine/Engine/Source/Runtime/AutoRTFM",
+        "@unreal_engine_source//UnrealEngine/Engine/Source/Runtime/CoreUObject",
+    ],
+    # Transitive header deps — modules that our deps' public headers include.
+    # Auto-generated modules get this from the emitter; hand-written modules list manually.
+    transitive_header_deps = [
+        "@unreal_engine_source//UnrealEngine/Engine/Source/Runtime/ImageCore:ImageCore_headers",
     ],
     visibility = ["//visibility:public"],
 )

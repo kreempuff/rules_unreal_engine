@@ -16,7 +16,7 @@ public class ModulePathResolver
         foreach (var file in Directory.EnumerateFiles(engineSourcePath, "*.Build.cs", SearchOption.AllDirectories))
         {
             var fileName = Path.GetFileName(file);
-            if (!fileName.EndsWith(".Build.cs"))
+            if (!fileName.EndsWith(".Build.cs", StringComparison.OrdinalIgnoreCase))
                 continue;
 
             var moduleName = fileName[..^".Build.cs".Length];

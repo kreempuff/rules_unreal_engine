@@ -78,7 +78,7 @@ public class StarlarkEmitter
         // public_header_deps: skip modules already in public_deps or private_deps (would create duplicates)
         var allDeps = new HashSet<string>(module.PublicDeps.Concat(module.PrivateDeps));
         var dedupedHeaderDeps = module.PublicHeaderDeps.Where(d => !allDeps.Contains(d)).ToList();
-        EmitDepListWithSelect(sb, "public_header_deps", dedupedHeaderDeps, module.ConditionalBlocks, b => b.PublicHeaderDeps, suffix: ":${name}_headers");
+        EmitDepListWithSelect(sb, "public_header_deps", dedupedHeaderDeps, module.ConditionalBlocks, b => b.PublicHeaderDeps, suffix: ":${name}_uht_headers");
 
         // Transitive header deps — all modules this module transitively needs headers from
         // Computed by the emitter from the full dependency graph (avoids needing dep edges on _headers)

@@ -45,27 +45,26 @@ def _generate_uht_outputs(name, hdrs):
 
     return outputs
 
-def _to_headers_dep(dep):
-    """Convert a module dep label to its _headers target.
-
-    //path/to/Core          → //path/to/Core:Core_headers
-    //path/to/Core:Core     → //path/to/Core:Core_headers
-    :Core                   → :Core_headers
-    Already _headers suffix → unchanged
-    """
+def _to_dep_target(dep, suffix):
+    """Convert a module dep label to a specific target suffix (_headers or _uht_headers)."""
     if "_headers" in dep or "_uht_headers" in dep:
         return dep
     if ":" in dep:
-        return dep + "_headers"
-    # //path/to/Module → //path/to/Module:Module_headers
+        return dep + suffix
     module_name = dep.split("/")[-1]
-    return dep + ":" + module_name + "_headers"
+    return dep + ":" + module_name + suffix
+
+def _deps_to_uht_headers(deps):
+    """Convert deps to _uht_headers (for direct deps that may need .generated.h)."""
+    if type(deps) != "list":
+        return deps
+    return [_to_dep_target(d, "_uht_headers") for d in deps]
 
 def _deps_to_headers(deps):
-    """Convert a list of deps to _headers variants. Passes through select() unchanged."""
+    """Convert deps to _headers (for transitive deps that only need source headers)."""
     if type(deps) != "list":
-        return deps  # select() — can't iterate, pass through
-    return [_to_headers_dep(d) for d in deps]
+        return deps
+    return [_to_dep_target(d, "_headers") for d in deps]
 
 def ue_module(
         name,
@@ -485,10 +484,10 @@ def ue_module(
             visibility = visibility,
         )
 
-    # Convert all module deps to _headers for compilation (breaks circular deps)
-    # Linking happens at ue_binary time, not here
-    # Direct deps + transitive header deps = flat list of ALL headers this module needs
-    header_deps = _deps_to_headers(public_deps) + _deps_to_headers(private_deps) + public_header_deps + transitive_header_deps
+    # Direct deps use _uht_headers (may need .generated.h from deps).
+    # Transitive deps use _headers (only need source headers for include resolution).
+    # public_header_deps already have correct suffixes from the emitter.
+    header_deps = _deps_to_uht_headers(public_deps) + _deps_to_uht_headers(private_deps) + public_header_deps + transitive_header_deps
 
     # Add C library if present
     if c_files:

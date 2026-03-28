@@ -63,7 +63,7 @@ public class BuildCsParser
         {
             return new ModuleInfo
             {
-                Name = Path.GetFileNameWithoutExtension(filePath).Replace(".Build", ""),
+                Name = Path.GetFileNameWithoutExtension(filePath).Replace(".Build", "", StringComparison.OrdinalIgnoreCase),
                 FilePath = filePath,
                 ModuleType = moduleType,
                 Warnings = ["No class extending ModuleRules found"],
@@ -73,7 +73,7 @@ public class BuildCsParser
 
         // Use filename for module name (matches UBT's module resolution and our ModulePathResolver)
         // Class name can differ in case (e.g., UELibSampleRate class in UElibSampleRate.Build.cs)
-        var moduleName = Path.GetFileNameWithoutExtension(filePath).Replace(".Build", "");
+        var moduleName = Path.GetFileNameWithoutExtension(filePath).Replace(".Build", "", StringComparison.OrdinalIgnoreCase);
 
         // Find constructor
         var constructor = classDecl.DescendantNodes()

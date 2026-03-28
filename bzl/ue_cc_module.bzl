@@ -36,6 +36,17 @@ def _ue_cc_module_impl(ctx):
 
     all_public_hdrs = ctx.files.public_hdrs + extra_hdrs
 
+    # Resolve include paths relative to the package directory
+    package_path = ctx.label.package
+    resolved_includes = [package_path + "/" + inc if not inc.startswith("/") else inc for inc in ctx.attr.includes]
+
+    # Add UHT output directories to include paths (for .generated.h files)
+    uht_dirs = {}
+    for f in extra_hdrs:
+        if f.path.endswith(".generated.h"):
+            uht_dirs[f.dirname] = True
+    resolved_includes = resolved_includes + uht_dirs.keys()
+
     # Compile sources
     compilation_context, compilation_outputs = cc_common.compile(
         actions = ctx.actions,
@@ -44,7 +55,7 @@ def _ue_cc_module_impl(ctx):
         srcs = actual_srcs,
         public_hdrs = all_public_hdrs,
         private_hdrs = ctx.files.private_hdrs,
-        includes = ctx.attr.includes,
+        includes = resolved_includes,
         defines = ctx.attr.defines,
         local_defines = ctx.attr.local_defines,
         user_compile_flags = ctx.attr.copts,

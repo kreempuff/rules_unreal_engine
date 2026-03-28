@@ -71,6 +71,19 @@ public class ParserTests
     }
 
     [Fact]
+    public void Parse_LowercaseBuildExtension_CorrectModuleName()
+    {
+        // CorePreciseFP.build.cs has lowercase 'b' — should still strip correctly
+        var parser = new BuildCsParser();
+        var file = Path.Combine(_ueSource, "Runtime/CorePreciseFP/CorePreciseFP.build.cs");
+        if (!File.Exists(file)) return; // Skip if not present
+        var info = parser.Parse(file, "Runtime");
+
+        Assert.Equal("CorePreciseFP", info.Name);
+        Assert.DoesNotContain(".", info.Name);
+    }
+
+    [Fact]
     public void Parse_Defines_Extracted()
     {
         var parser = new BuildCsParser();
