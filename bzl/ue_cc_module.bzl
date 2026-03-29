@@ -51,6 +51,12 @@ def _ue_cc_module_impl(ctx):
     package_path = ctx.label.package
     resolved_includes = [package_path + "/" + inc if not inc.startswith("/") else inc for inc in ctx.attr.includes]
 
+    # Add Engine/Source as include root for absolute-style UE includes
+    # (e.g., "Runtime/Engine/Internal/..." expects Engine/Source/ in include path)
+    idx = package_path.find("Engine/Source/")
+    if idx >= 0:
+        resolved_includes.append(package_path[:idx + len("Engine/Source")])
+
     # Add UHT output directories to include paths
     module_name = ctx.attr.module_name or ctx.attr.name
     for tree in tree_artifacts:
