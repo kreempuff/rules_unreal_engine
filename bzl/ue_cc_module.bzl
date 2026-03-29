@@ -32,15 +32,20 @@ def _ue_cc_module_impl(ctx):
     src_extensions = [".cpp", ".c", ".mm", ".cc"]
     hdr_extensions = [".h", ".hpp", ".inl"]
 
-    tree_artifacts = [f for f in ctx.files.srcs if f.is_directory]
-    regular_files = [f for f in ctx.files.srcs if not f.is_directory]
+    # Collect tree artifacts from both srcs and public_hdrs
+    src_tree_artifacts = [f for f in ctx.files.srcs if f.is_directory]
+    hdr_tree_artifacts = [f for f in ctx.files.public_hdrs if f.is_directory]
+    tree_artifacts = src_tree_artifacts + hdr_tree_artifacts
 
-    actual_srcs = [f for f in regular_files if any([f.path.endswith(ext) for ext in src_extensions])]
-    extra_hdrs = [f for f in regular_files if any([f.path.endswith(ext) for ext in hdr_extensions])]
+    regular_src_files = [f for f in ctx.files.srcs if not f.is_directory]
+    regular_hdr_files = [f for f in ctx.files.public_hdrs if not f.is_directory]
 
-    # Tree artifacts (UHT output dir) go into both srcs and hdrs for cc_common.compile()
-    actual_srcs = actual_srcs + tree_artifacts
-    all_public_hdrs = ctx.files.public_hdrs + extra_hdrs + tree_artifacts
+    actual_srcs = [f for f in regular_src_files if any([f.path.endswith(ext) for ext in src_extensions])]
+    extra_hdrs = [f for f in regular_src_files if any([f.path.endswith(ext) for ext in hdr_extensions])]
+
+    # Tree artifacts go into both srcs (for .gen.cpp) and hdrs (for .generated.h)
+    actual_srcs = actual_srcs + src_tree_artifacts
+    all_public_hdrs = regular_hdr_files + extra_hdrs + tree_artifacts
 
     # Resolve include paths relative to the package directory
     package_path = ctx.label.package
@@ -52,10 +57,13 @@ def _ue_cc_module_impl(ctx):
         if tree.basename.endswith("_uht_gen"):
             # Per-module extracted directory — add directly (no subdirectory)
             resolved_includes.append(tree.path)
-        else:
-            # Full uht_gen_all tree — add dep modules' subdirectories
+
+    # Add dep modules' UHT include paths from the full uht_gen_all tree
+    uht_all_files = ctx.attr.uht_all_tree[DefaultInfo].files.to_list() if ctx.attr.uht_all_tree else []
+    for uht_tree in uht_all_files:
+        if uht_tree.is_directory:
             for dep_mod in ctx.attr.uht_dep_modules:
-                resolved_includes.append(tree.path + "/" + dep_mod)
+                resolved_includes.append(uht_tree.path + "/" + dep_mod)
 
     # For regular generated headers
     uht_dirs = {}
@@ -63,6 +71,11 @@ def _ue_cc_module_impl(ctx):
         if f.path.endswith(".generated.h"):
             uht_dirs[f.dirname] = True
     resolved_includes = resolved_includes + uht_dirs.keys()
+
+    # Add full UHT tree to public_hdrs for include resolution
+    for uht_tree in uht_all_files:
+        if uht_tree.is_directory:
+            all_public_hdrs = all_public_hdrs + [uht_tree]
 
     # Compile sources
     compilation_context, compilation_outputs = cc_common.compile(
@@ -120,8 +133,8 @@ ue_cc_module = rule(
     implementation = _ue_cc_module_impl,
     attrs = {
         # Sources
-        "srcs": attr.label_list(allow_files = [".cpp", ".c", ".mm", ".cc"]),
-        "public_hdrs": attr.label_list(allow_files = [".h", ".hpp", ".inl"]),
+        "srcs": attr.label_list(allow_files = True),
+        "public_hdrs": attr.label_list(allow_files = True),
         "private_hdrs": attr.label_list(allow_files = [".h", ".hpp", ".inl"]),
 
         # Compilation deps — these are real Bazel deps, must be acyclic
@@ -136,6 +149,8 @@ ue_cc_module = rule(
 
         # UHT dep module names — their subdirectories in uht_gen_all are added to includes
         "uht_dep_modules": attr.string_list(),
+        # Full UHT output tree — used for include path resolution only, NOT compiled
+        "uht_all_tree": attr.label(),
 
         # Module metadata
         "module_name": attr.string(),

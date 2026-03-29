@@ -320,6 +320,22 @@ uht_codegen_all(
 )
 """)
 
+    # Create pseudo-modules for UBT PrivateIncludePathModuleNames that aren't real modules
+    # Shaders — provides Engine/Shaders/Shared include path
+    repo_ctx.file("UnrealEngine/Engine/Shaders/BUILD.bazel", """
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "Shaders",
+    hdrs = glob(["Shared/**/*.h"], allow_empty = True),
+    includes = ["Shared"],
+    visibility = ["//visibility:public"],
+)
+
+alias(name = "Shaders_headers", actual = ":Shaders", visibility = ["//visibility:public"])
+alias(name = "Shaders_uht_headers", actual = ":Shaders", visibility = ["//visibility:public"])
+""")
+
     # Export bundled tools for UHT code generation
     # Platform-specific dotnet binary paths
     dotnet_builds = {

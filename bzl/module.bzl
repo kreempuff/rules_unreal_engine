@@ -281,8 +281,8 @@ def ue_module(
         else:
             srcs = srcs + [uht_target]
 
-        # Also add the FULL uht_gen_all tree to hdrs — needed for dep modules' .generated.h include paths
-        hdrs = hdrs + [uht_all_target]
+        # Pass the full uht_gen_all tree for dep module include path resolution
+        # This is separate from srcs — we don't want to compile all modules' .gen.cpp files
 
     # UE default compiler flags (from UBT ClangToolChain.cs and AppleToolChain.cs)
     # On Apple platforms, .cpp files are compiled as Objective-C++ to support Foundation headers
@@ -502,8 +502,12 @@ def ue_module(
     for dep_list in [public_deps, private_deps, transitive_header_deps]:
         if type(dep_list) == "list":
             for dep in dep_list:
-                # Extract module name from label: //path/to/Module:Module_headers → Module
-                dep_name = dep.split("/")[-1].split(":")[0]
+                # Extract module name from label: //path/to/Module:Target_headers → Target
+                # Use the target name (after :) if present, otherwise last path component
+                if ":" in dep:
+                    dep_name = dep.split(":")[-1].replace("_headers", "").replace("_uht_headers", "")
+                else:
+                    dep_name = dep.split("/")[-1]
                 if dep_name and dep_name not in _uht_dep_module_names:
                     _uht_dep_module_names.append(dep_name)
 
@@ -519,6 +523,7 @@ def ue_module(
         module_name = name,
         module_type = module_type,
         uht_dep_modules = _uht_dep_module_names,
+        uht_all_tree = uht_all_target if _enable_uht else None,
         visibility = visibility,
     )
 

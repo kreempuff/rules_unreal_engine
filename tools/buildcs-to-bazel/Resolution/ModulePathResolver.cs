@@ -9,6 +9,13 @@ public class ModulePathResolver
     public ModulePathResolver(string engineSourcePath)
     {
         Scan(engineSourcePath);
+
+        // Add pseudo-modules that don't have Build.cs files
+        // These are directories UBT treats as include-path-only modules
+        var ueRoot = Path.GetDirectoryName(Path.GetDirectoryName(engineSourcePath)!)!;
+        _moduleToPath.TryAdd("Shaders", "//UnrealEngine/Engine/Shaders");
+        _moduleToType.TryAdd("Shaders", "ThirdParty");
+        _moduleToCanonicalName.TryAdd("shaders", "Shaders");
     }
 
     private void Scan(string engineSourcePath)
