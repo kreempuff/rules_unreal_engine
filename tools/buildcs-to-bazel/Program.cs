@@ -35,6 +35,7 @@ class Program
             "scan" => RunScan(ueSource),
             "generate" => RunGenerate(ueSource, options),
             "resolve" => RunResolve(ueSource),
+            "registry" => RunRegistry(ueSource, options),
             _ => PrintUsage(),
         };
     }
@@ -216,6 +217,50 @@ class Program
             Console.WriteLine($"  {name,-40} → {path}");
         }
 
+        return 0;
+    }
+
+    static int RunRegistry(string ueSource, Dictionary<string, string> options)
+    {
+        var output = options.GetValueOrDefault("--output", "uht_module_registry.json");
+
+        Console.WriteLine($"Generating module registry from {ueSource}");
+
+        var parser = new BuildCsParser();
+        var entries = new List<object>();
+
+        foreach (var file in Directory.EnumerateFiles(ueSource, "*.Build.cs", SearchOption.AllDirectories))
+        {
+            var moduleName = Path.GetFileNameWithoutExtension(file).Replace(".Build", "", StringComparison.OrdinalIgnoreCase);
+            var moduleType = InferModuleType(file);
+
+            // Skip ThirdParty/External modules — they don't use UHT
+            if (moduleType == "ThirdParty")
+                continue;
+
+            var info = parser.Parse(file, moduleType);
+            if (info.IsExternal)
+                continue;
+
+            // Get relative path from Engine/Source
+            var relDir = GetRelativeModuleDir(file, ueSource);
+
+            // Collect all deps for topological sorting
+            var allDeps = new HashSet<string>(info.PublicDeps);
+            allDeps.UnionWith(info.PrivateDeps);
+            foreach (var block in info.ConditionalBlocks)
+            {
+                allDeps.UnionWith(block.PublicDeps);
+                allDeps.UnionWith(block.PrivateDeps);
+            }
+
+            entries.Add(new { name = moduleName, type = moduleType, base_dir = relDir, deps = allDeps.ToArray() });
+        }
+
+        var json = System.Text.Json.JsonSerializer.Serialize(entries, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText(output, json);
+
+        Console.WriteLine($"Generated registry with {entries.Count} modules: {output}");
         return 0;
     }
 

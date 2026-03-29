@@ -61,9 +61,57 @@ and where to write generated reflection code.`,
 	},
 }
 
+var uhtManifestAllCmd = &cobra.Command{
+	Use:   "manifest-all",
+	Short: "Generate UHT manifest for all modules",
+	Long:  `Generate a single .uhtmanifest JSON file containing all UE modules for a full UHT pass.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		registryPath, _ := cmd.Flags().GetString("registry")
+		ueSourceRoot, _ := cmd.Flags().GetString("ue-source-root")
+		outputRoot, _ := cmd.Flags().GetString("output-root")
+		ueRoot, _ := cmd.Flags().GetString("ue-root")
+		output, _ := cmd.Flags().GetString("output")
+
+		registry, err := uht.LoadModuleRegistry(registryPath)
+		if err != nil {
+			logrus.Errorf("failed to load registry: %s", err)
+			logrus.Exit(UnknownExitCode)
+		}
+
+		logrus.Infof("loaded %d modules from registry", len(registry))
+
+		opts := uht.GenerateMultiModuleManifestOptions{
+			Registry:     registry,
+			UESourceRoot: ueSourceRoot,
+			OutputRoot:   outputRoot,
+			UERoot:       ueRoot,
+			IsGameTarget: false, // Engine modules
+		}
+
+		if err := uht.WriteMultiModuleManifest(output, opts); err != nil {
+			logrus.Errorf("failed to generate manifest: %s", err)
+			logrus.Exit(UnknownExitCode)
+		}
+
+		logrus.Infof("generated multi-module manifest: %s", output)
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(uhtCmd)
 	uhtCmd.AddCommand(uhtManifestCmd)
+	uhtCmd.AddCommand(uhtManifestAllCmd)
+
+	// manifest-all flags
+	uhtManifestAllCmd.Flags().String("registry", "", "Path to module registry JSON")
+	uhtManifestAllCmd.Flags().String("ue-source-root", "", "Path to Engine/Source directory")
+	uhtManifestAllCmd.Flags().String("output-root", "", "Root output directory for all modules")
+	uhtManifestAllCmd.Flags().String("ue-root", "", "Unreal Engine root directory")
+	uhtManifestAllCmd.Flags().StringP("output", "o", "", "Output manifest file path")
+	uhtManifestAllCmd.MarkFlagRequired("registry")
+	uhtManifestAllCmd.MarkFlagRequired("ue-source-root")
+	uhtManifestAllCmd.MarkFlagRequired("output-root")
+	uhtManifestAllCmd.MarkFlagRequired("output")
 
 	// Define flags for manifest command
 	uhtManifestCmd.Flags().String("module-name", "", "Module name (e.g., 'Core', 'TestModule')")
