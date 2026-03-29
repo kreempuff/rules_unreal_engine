@@ -4,9 +4,9 @@ This replaces UnrealBuildTool's .Build.cs files with native Bazel rules.
 """
 
 load("@rules_cc//cc:defs.bzl", "cc_library")
-load("//bzl:uht.bzl", "uht_codegen")
 load("//bzl:ue_module_info.bzl", "ue_module_info")
 load("//bzl:ue_cc_module.bzl", "ue_cc_module")
+load("//bzl:uht_all.bzl", "uht_module_extract")
 load("//bzl:config.bzl", "UE_CONSTANT_DEFINES", "ue_build_config_defines", "ue_target_type_defines")
 
 def _generate_uht_outputs(name, hdrs):
@@ -256,30 +256,25 @@ def ue_module(
     # Used for _headers target which must not trigger UHT (breaks cycles)
     source_hdrs = hdrs
 
-    # Generate UHT code for reflection (UCLASS/USTRUCT/UENUM)
-    # Automatically disabled for ThirdParty modules
+    # UHT code generation — uses the global single-invocation UHT target
+    # uht_module_extract copies this module's subdirectory from uht_gen_all
+    ue_repo = "@unreal_engine_source"
     if _enable_uht:
-        # Use custom uht_codegen rule (replaces genrule approach)
-        ue_repo = "@unreal_engine_source"
-        uht_codegen(
+        uht_module_extract(
             name = name + "_uht",
+            uht_all = ue_repo + "//UnrealEngine/Engine/Source:uht_all",
             module_name = name,
-            module_type = module_type,
-            hdrs = hdrs,
-            dotnet = ue_repo + "//UnrealEngine/Engine/Binaries/ThirdParty/DotNet/8.0.300/mac-arm64:dotnet",
-            ubt = ue_repo + "//UnrealEngine/Engine/Binaries/DotNET/UnrealBuildTool:UnrealBuildTool.dll",
         )
 
-        # Add UHT outputs as dependency
-        hdrs = hdrs + [":" + name + "_uht"]
+        uht_target = ":" + name + "_uht"
+        hdrs = hdrs + [uht_target]
 
-        # Add UHT genrule to sources for .cpp files (.init.gen.cpp, .gen.cpp)
         if _auto_globbed_srcs:
-            _globbed_cpp = _globbed_cpp + [":" + name + "_uht"]
+            _globbed_cpp = _globbed_cpp + [uht_target]
         elif srcs == None:
-            srcs = [":" + name + "_uht"]
+            srcs = [uht_target]
         else:
-            srcs = srcs + [":" + name + "_uht"]
+            srcs = srcs + [uht_target]
 
     # UE default compiler flags (from UBT ClangToolChain.cs and AppleToolChain.cs)
     # On Apple platforms, .cpp files are compiled as Objective-C++ to support Foundation headers
@@ -369,9 +364,7 @@ def ue_module(
     if private_includes:
         includes.extend(private_includes)
 
-    # Add UHT output directory so #include "Foo.generated.h" resolves
-    if _enable_uht:
-        includes.append(name + "_uht_gen")
+    # UHT include paths are handled by ue_cc_module from the tree artifact
 
     # Separate C and C++ source files
     if _auto_globbed_srcs:

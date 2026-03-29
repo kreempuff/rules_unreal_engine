@@ -28,19 +28,34 @@ def _ue_cc_module_impl(ctx):
         if CcInfo in dep:
             dep_compilation_contexts.append(dep[CcInfo].compilation_context)
 
-    # Separate source files from headers (UHT genrule produces both in one output group)
+    # Separate regular files from tree artifacts (UHT output is a tree artifact)
     src_extensions = [".cpp", ".c", ".mm", ".cc"]
     hdr_extensions = [".h", ".hpp", ".inl"]
-    actual_srcs = [f for f in ctx.files.srcs if any([f.path.endswith(ext) for ext in src_extensions])]
-    extra_hdrs = [f for f in ctx.files.srcs if any([f.path.endswith(ext) for ext in hdr_extensions])]
 
-    all_public_hdrs = ctx.files.public_hdrs + extra_hdrs
+    tree_artifacts = [f for f in ctx.files.srcs if f.is_directory]
+    regular_files = [f for f in ctx.files.srcs if not f.is_directory]
+
+    actual_srcs = [f for f in regular_files if any([f.path.endswith(ext) for ext in src_extensions])]
+    extra_hdrs = [f for f in regular_files if any([f.path.endswith(ext) for ext in hdr_extensions])]
+
+    # Tree artifacts (UHT output dir) go into both srcs and hdrs for cc_common.compile()
+    actual_srcs = actual_srcs + tree_artifacts
+    all_public_hdrs = ctx.files.public_hdrs + extra_hdrs + tree_artifacts
 
     # Resolve include paths relative to the package directory
     package_path = ctx.label.package
     resolved_includes = [package_path + "/" + inc if not inc.startswith("/") else inc for inc in ctx.attr.includes]
 
-    # Add UHT output directories to include paths (for .generated.h files)
+    # Add UHT output directories to include paths
+    # For tree artifacts: add the tree root + module-specific subdirectory
+    module_name = ctx.attr.module_name or ctx.attr.name
+    for tree in tree_artifacts:
+        # The tree is uht_gen_all/ — add the module's subdirectory as include path
+        resolved_includes.append(tree.path + "/" + module_name)
+        # Also add the tree root (some generated code uses cross-module includes)
+        resolved_includes.append(tree.path)
+
+    # For regular generated headers
     uht_dirs = {}
     for f in extra_hdrs:
         if f.path.endswith(".generated.h"):

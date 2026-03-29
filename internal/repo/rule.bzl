@@ -287,6 +287,39 @@ def _unreal_engine_impl(repo_ctx):
                 gen_count += 1
             print("Installed {} generated BUILD files from .Build.cs".format(gen_count))
 
+    # Generate module registry for single-invocation UHT
+    print("Generating UHT module registry...")
+    registry_result = repo_ctx.execute([
+        dotnet_binary,
+        "run",
+        "--project", str(buildcs_parser_src),
+        "--",
+        "registry",
+        "--ue-source", "UnrealEngine/Engine/Source",
+        "--output", "UnrealEngine/Engine/Source/uht_module_registry.json",
+    ], timeout = 120)
+
+    if registry_result.return_code != 0:
+        print("WARNING: Registry generation failed:\n{}{}".format(
+            registry_result.stdout, registry_result.stderr))
+    else:
+        print("UHT module registry generated")
+
+    # Create the global UHT codegen target
+    repo_ctx.file("UnrealEngine/Engine/Source/BUILD.bazel", """
+load("@rules_unreal_engine//bzl:uht_all.bzl", "uht_codegen_all")
+
+exports_files(["uht_module_registry.json"])
+
+uht_codegen_all(
+    name = "uht_all",
+    module_registry = ":uht_module_registry.json",
+    dotnet = "//UnrealEngine/Engine/Binaries/ThirdParty/DotNet/8.0.300/mac-arm64:dotnet",
+    ubt = "//UnrealEngine/Engine/Binaries/DotNET/UnrealBuildTool:UnrealBuildTool.dll",
+    visibility = ["//visibility:public"],
+)
+""")
+
     # Export bundled tools for UHT code generation
     # Platform-specific dotnet binary paths
     dotnet_builds = {
