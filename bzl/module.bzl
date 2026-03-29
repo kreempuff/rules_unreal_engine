@@ -245,6 +245,8 @@ def ue_module(
                 "Private/**/*.h",       # Private headers (needed for includes)
                 "Private/**/*.hpp",
                 "Private/**/*.inl",     # Private inline files (e.g., LZ4/lz4.c.inl)
+                "Classes/**/*.h",       # Legacy UE header location (Engine module)
+                "Classes/**/*.hpp",
             ],
             allow_empty = True,
         )
@@ -259,14 +261,17 @@ def ue_module(
     # UHT code generation — uses the global single-invocation UHT target
     # uht_module_extract copies this module's subdirectory from uht_gen_all
     ue_repo = "@unreal_engine_source"
+    uht_all_target = ue_repo + "//UnrealEngine/Engine/Source:uht_all"
     if _enable_uht:
+        # Extract this module's UHT output for compilation (.gen.cpp files)
         uht_module_extract(
             name = name + "_uht",
-            uht_all = ue_repo + "//UnrealEngine/Engine/Source:uht_all",
+            uht_all = uht_all_target,
             module_name = name,
         )
 
         uht_target = ":" + name + "_uht"
+        # Module's own extracted UHT output goes into srcs (for .gen.cpp) and hdrs (for .generated.h)
         hdrs = hdrs + [uht_target]
 
         if _auto_globbed_srcs:
@@ -275,6 +280,9 @@ def ue_module(
             srcs = [uht_target]
         else:
             srcs = srcs + [uht_target]
+
+        # Also add the FULL uht_gen_all tree to hdrs — needed for dep modules' .generated.h include paths
+        hdrs = hdrs + [uht_all_target]
 
     # UE default compiler flags (from UBT ClangToolChain.cs and AppleToolChain.cs)
     # On Apple platforms, .cpp files are compiled as Objective-C++ to support Foundation headers
@@ -356,9 +364,9 @@ def ue_module(
     if public_includes:
         includes.extend(public_includes)
     else:
-        # Default: Public, Internal, and Private directories
-        # UE modules expect to include from these paths
-        includes.extend(["Public", "Internal", "Private"])
+        # Default: Public, Internal, Private, and Classes directories
+        # Classes/ is a legacy UE header location still used by Engine module
+        includes.extend(["Public", "Internal", "Private", "Classes"])
 
     # Add any additional private includes
     if private_includes:
@@ -488,6 +496,17 @@ def ue_module(
 
     # Create the main compilation target using ue_cc_module
     # This compiles against headers only (no cycles) and provides UeLinkInfo for binary linking
+    # Extract dep module names for UHT include path resolution
+    # Each dep's .generated.h files live in uht_gen_all/<dep_name>/
+    _uht_dep_module_names = []
+    for dep_list in [public_deps, private_deps, transitive_header_deps]:
+        if type(dep_list) == "list":
+            for dep in dep_list:
+                # Extract module name from label: //path/to/Module:Module_headers → Module
+                dep_name = dep.split("/")[-1].split(":")[0]
+                if dep_name and dep_name not in _uht_dep_module_names:
+                    _uht_dep_module_names.append(dep_name)
+
     ue_cc_module(
         name = name,
         srcs = cpp_files,
@@ -499,6 +518,7 @@ def ue_module(
         copts = all_copts,
         module_name = name,
         module_type = module_type,
+        uht_dep_modules = _uht_dep_module_names,
         visibility = visibility,
     )
 

@@ -47,13 +47,15 @@ def _ue_cc_module_impl(ctx):
     resolved_includes = [package_path + "/" + inc if not inc.startswith("/") else inc for inc in ctx.attr.includes]
 
     # Add UHT output directories to include paths
-    # For tree artifacts: add the tree root + module-specific subdirectory
     module_name = ctx.attr.module_name or ctx.attr.name
     for tree in tree_artifacts:
-        # The tree is uht_gen_all/ — add the module's subdirectory as include path
-        resolved_includes.append(tree.path + "/" + module_name)
-        # Also add the tree root (some generated code uses cross-module includes)
-        resolved_includes.append(tree.path)
+        if tree.basename.endswith("_uht_gen"):
+            # Per-module extracted directory — add directly (no subdirectory)
+            resolved_includes.append(tree.path)
+        else:
+            # Full uht_gen_all tree — add dep modules' subdirectories
+            for dep_mod in ctx.attr.uht_dep_modules:
+                resolved_includes.append(tree.path + "/" + dep_mod)
 
     # For regular generated headers
     uht_dirs = {}
@@ -131,6 +133,9 @@ ue_cc_module = rule(
         "defines": attr.string_list(),
         "local_defines": attr.string_list(),
         "copts": attr.string_list(),
+
+        # UHT dep module names — their subdirectories in uht_gen_all are added to includes
+        "uht_dep_modules": attr.string_list(),
 
         # Module metadata
         "module_name": attr.string(),
