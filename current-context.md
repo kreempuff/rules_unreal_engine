@@ -190,12 +190,54 @@ UHT codegen is proven working. TestModule generates 3 files correctly. The build
 - [x] **Json builds** (`libJson.a`), **Projects builds** (`libProjects.a`)
 - [x] **Engine _headers resolves** (88 packages, 2272 targets)
 
+### Completed (2026-03-27 sessions)
+- [x] **ue_cc_module custom rule** — separates compilation (header-only deps) from linking (ue_binary)
+- [x] **ue_binary custom rule** — collects UeLinkInfo providers, links all .a files at the end
+- [x] **Circular deps test passes** — two modules with mutual deps compile and link correctly
+- [x] Removed hand-written BUILD overrides — auto-generated BUILD files are source of truth
+
+### Completed (2026-03-28/29 sessions)
+- [x] **Single-invocation UHT** — replaces broken per-module approach
+  - 693 modules, 9,356 generated files, 11 seconds
+  - Topological sort with cycle-breaking for foundational modules (Core → CoreUObject → Engine)
+  - uhtscan filtering with delegate macro support
+  - Global basename dedup, stub module exclusion, Classes/ support
+- [x] **uht_codegen_all rule** — single Bazel action for all UHT
+- [x] **uht_module_extract rule** — copies per-module subdirectory for compilation
+- [x] **UHT dep module include paths** — each module gets its deps' .generated.h include paths
+  - Per-module extracted tree (own .generated.h) + full uht_gen_all (deps' .generated.h)
+  - uht_dep_modules string_list carries dep module names for include path construction
+- [x] **Module registry with deps** — buildcs-to-bazel `registry` command for topological sorting
+- [x] **Classes/ support** — legacy UE header location added to hdrs glob and includes
+- [x] All .generated.h headers resolve across module boundaries (UObject, delegates, etc.)
+
 ### Current State
-Engine headers resolve across the full transitive dep graph (835 modules). Full Engine compilation blocked by circular deps: `Engine ↔ UMG/Renderer/ImageWriteQueue`. UE has many circular module deps that UBT handles via monolithic linking.
+**Engine module: 248 compilation actions cached, all UHT-generated headers resolve.**
+
+The UHT pipeline is fully working. Engine compilation progresses through hundreds of source files. Remaining errors are regular C++ include path issues where Build.cs specifies custom include paths that the auto-generated BUILD files don't capture:
+- `Engine/Shaders/Shared/` (shader includes)
+- Other `PrivateIncludePaths` with computed paths (`Path.Combine(EngineDirectory, ...)`)
+
+These are Build.cs → Bazel mapping refinements, not architectural issues.
+
+## Architecture Summary
+
+```
+Build.cs parser → Module registry (693 modules with deps)
+                → BUILD.bazel files (835, auto-generated)
+                → UHT manifest (topologically sorted, all modules)
+
+UHT (single invocation) → uht_gen_all/ tree artifact (9,356 files)
+                        → per-module extraction (uht_module_extract)
+
+ue_module macro → ue_cc_module (compilation, header-only deps)
+               → _headers / _uht_headers (cc_library, for dep resolution)
+               → ue_binary (linking, collects UeLinkInfo)
+```
 
 ## Next Steps
 
-1. **Cycle detection in emitter** — two-pass: build dep graph, detect cycles, convert back-references to _headers
-2. **Replace UBT with minimal UHT shim** — invoke EpicGames.UHT.dll directly
+1. **Fix remaining Engine include paths** — shader includes, computed private include paths
+2. **Replace UBT with minimal UHT shim** — invoke EpicGames.UHT.dll directly (faster, no UBT overhead)
 3. **Platform toolchains** — cross-compilation to Linux for dedicated server
-4. **Executable targets** — cc_binary for editor, game client, server
+4. **Executable targets** — ue_binary for editor, game client, server
