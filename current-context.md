@@ -211,33 +211,52 @@ UHT codegen is proven working. TestModule generates 3 files correctly. The build
 - [x] **Classes/ support** — legacy UE header location added to hdrs glob and includes
 - [x] All .generated.h headers resolve across module boundaries (UObject, delegates, etc.)
 
+### Completed (2026-03-29 session, continued)
+- [x] UHT dep module include paths via `uht_all_tree` attribute + `uht_dep_modules` string list
+- [x] Dep module name extraction: use target name (after `:`) not directory name
+- [x] Shaders pseudo-module for `Engine/Shaders/Shared` includes
+- [x] `Engine/Source` as include root for absolute-style UE includes (`Runtime/Engine/Internal/...`)
+- [x] `Classes/` in default hdrs glob and includes (legacy UE header location)
+- [x] Relaxed `allow_files` on `ue_cc_module` for tree artifacts
+- [x] Tree artifact handling from both `srcs` and `public_hdrs`
+- [x] Off-by-one fix in Engine/Source include root path computation
+- [x] `--keep_going` build: 96+ Engine compilations succeed
+
 ### Current State
-**Engine module: 248 compilation actions cached, all UHT-generated headers resolve.**
+**Engine module: 96+ compilations succeed. All UHT and .generated.h headers resolve.**
 
-The UHT pipeline is fully working. Engine compilation progresses through hundreds of source files. Remaining errors are regular C++ include path issues where Build.cs specifies custom include paths that the auto-generated BUILD files don't capture:
-- `Engine/Shaders/Shared/` (shader includes)
-- Other `PrivateIncludePaths` with computed paths (`Path.Combine(EngineDirectory, ...)`)
+With `--keep_going`, 19 unique fatal errors remain — all are regular C++ include path issues:
+- **5 `Runtime/...` absolute includes** — may be fixed by the off-by-one fix (needs verification)
+- **6 `Iris/` includes** — Iris networking module include path not available
+- **3 `DistributedBuildControllerInterface.h`** — unresolved DistributedBuildInterface module
+- **1 `ISlateReflectorModule.h`** — SlateReflector module header
+- **1 `KismetMathLibrary.inl`** — .inl file include
+- **3 other** — Version.h, MaterialIR, CoreRedirects
 
-These are Build.cs → Bazel mapping refinements, not architectural issues.
+These are Build.cs → Bazel mapping refinements, not architectural issues. Each is fixable by
+adding the right module include path or excluding the file.
 
 ## Architecture Summary
 
 ```
-Build.cs parser → Module registry (693 modules with deps)
+Build.cs parser → Module registry (693 modules with deps, topologically sortable)
                 → BUILD.bazel files (835, auto-generated)
-                → UHT manifest (topologically sorted, all modules)
 
-UHT (single invocation) → uht_gen_all/ tree artifact (9,356 files)
-                        → per-module extraction (uht_module_extract)
+UHT (single invocation, 11s) → uht_gen_all/ tree artifact (9,356 files, 693 modules)
+                              → per-module extraction (uht_module_extract)
+                              → dep module include paths (uht_all_tree + uht_dep_modules)
 
-ue_module macro → ue_cc_module (compilation, header-only deps)
+ue_module macro → ue_cc_module (compilation, header-only deps, no cycles)
                → _headers / _uht_headers (cc_library, for dep resolution)
                → ue_binary (linking, collects UeLinkInfo)
+
+Config flags → --//bzl:target_type=game|editor|server
+             → --//bzl:build_config=development|shipping
 ```
 
 ## Next Steps
 
-1. **Fix remaining Engine include paths** — shader includes, computed private include paths
+1. **Fix remaining 19 Engine include paths** — Iris module, DistributedBuild, SlateReflector, absolute path includes
 2. **Replace UBT with minimal UHT shim** — invoke EpicGames.UHT.dll directly (faster, no UBT overhead)
 3. **Platform toolchains** — cross-compilation to Linux for dedicated server
 4. **Executable targets** — ue_binary for editor, game client, server
