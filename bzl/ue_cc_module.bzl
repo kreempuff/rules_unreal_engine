@@ -55,7 +55,8 @@ def _ue_cc_module_impl(ctx):
     # (e.g., "Runtime/Engine/Internal/..." expects Engine/Source/ in include path)
     idx = package_path.find("Engine/Source/")
     if idx >= 0:
-        resolved_includes.append(package_path[:idx + len("Engine/Source")])
+        engine_source_root = package_path[:idx] + "Engine/Source"
+        resolved_includes.append(engine_source_root)
 
     # Add UHT output directories to include paths
     module_name = ctx.attr.module_name or ctx.attr.name
