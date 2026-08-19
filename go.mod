@@ -3,7 +3,7 @@ module kreempuff.dev/rules-unreal-engine
 go 1.23
 
 require (
-	github.com/sirupsen/logrus v1.10.0
+	github.com/sirupsen/logrus v1.10.1
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.0
 )
